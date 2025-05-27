@@ -65,5 +65,5 @@ Future<void> main(List<String> arguments) async {
     } else {
       print('❌ Test file not generated successfully');
     }
-  }}
-
+  }
+}
