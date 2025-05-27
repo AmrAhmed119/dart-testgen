@@ -5,34 +5,6 @@ import 'package:testgen/src/file_manager.dart';
 import 'package:testgen/src/llm.dart';
 import 'package:testgen/src/utils.dart';
 
-void main(List<String> arguments) async {
-  if (arguments.isEmpty) {
-    stderr.writeln(r'No directory path is provided');
-    exit(1);
-  }
-
-  final rootDirectory = arguments[0];
-  final filePaths = exploreDartFiles(rootDirectory);
-
-  final model = createModel();
-  filePaths.removeAt(0); // Remove the export file of the package from the list.
-
-  for (final filePath in filePaths) {
-    final fileContent = readFromFile(filePath);
-    final fileRelativePath = getRootDirectoryRelativePath(filePath);
-
-    print('Generating Test file... for \'$fileRelativePath\'');
-
-    final isTestFileGenerated = await processFile(filePath, fileContent, model);
-
-    if (isTestFileGenerated) {
-      print('✅ Test file generated successfully for $fileRelativePath');
-    } else {
-      print('❌ Test file not generated successfully');
-    }
-  }
-}
-
 Future<bool> processFile(
   String filePath,
   String fileContent,
@@ -67,3 +39,31 @@ Future<bool> processFile(
 
   return false;
 }
+
+Future<void> main(List<String> arguments) async {
+  if (arguments.isEmpty) {
+    stderr.writeln(r'No directory path is provided');
+    exit(1);
+  }
+
+  final rootDirectory = arguments[0];
+  final filePaths = exploreDartFiles(rootDirectory);
+
+  final model = createModel();
+  filePaths.removeAt(0); // Remove the export file of the package from the list.
+
+  for (final filePath in filePaths) {
+    final fileContent = readFromFile(filePath);
+    final fileRelativePath = getRootDirectoryRelativePath(filePath);
+
+    print('Generating Test file... for \'$fileRelativePath\'');
+
+    final isTestFileGenerated = await processFile(filePath, fileContent, model);
+
+    if (isTestFileGenerated) {
+      print('✅ Test file generated successfully for $fileRelativePath');
+    } else {
+      print('❌ Test file not generated successfully');
+    }
+  }}
+
