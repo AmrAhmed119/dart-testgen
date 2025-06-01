@@ -1,6 +1,7 @@
 import 'dart:io';
 
 import 'package:google_generative_ai/google_generative_ai.dart';
+import 'package:testgen/src/coverage/coverage_integration.dart';
 import 'package:testgen/src/file_manager.dart';
 import 'package:testgen/src/llm.dart';
 import 'package:testgen/src/utils.dart';
@@ -47,23 +48,31 @@ Future<void> main(List<String> arguments) async {
   }
 
   final rootDirectory = arguments[0];
-  final filePaths = exploreDartFiles(rootDirectory);
-
-  final model = createModel();
-  filePaths.removeAt(0); // Remove the export file of the package from the list.
-
-  for (final filePath in filePaths) {
-    final fileContent = readFromFile(filePath);
-    final fileRelativePath = getRootDirectoryRelativePath(filePath);
-
-    print('Generating Test file... for \'$fileRelativePath\'');
-
-    final isTestFileGenerated = await processFile(filePath, fileContent, model);
-
-    if (isTestFileGenerated) {
-      print('✅ Test file generated successfully for $fileRelativePath');
-    } else {
-      print('❌ Test file not generated successfully');
-    }
+  // call test and retreive coverage from the root directory specified
+  if (!Directory(rootDirectory).existsSync()) {
+    stderr.writeln('The provided directory does not exist: $rootDirectory');
+    exit(1);
   }
+  print('Generating tests for Dart files in: $rootDirectory');
+  final testCoverage = await getTestCoverage(rootDirectory);
+  
+  // final filePaths = exploreDartFiles(rootDirectory);
+
+  // final model = createModel();
+  // filePaths.removeAt(0); // Remove the export file of the package from the list.
+
+  // for (final filePath in filePaths) {
+  //   final fileContent = readFromFile(filePath);
+  //   final fileRelativePath = getRootDirectoryRelativePath(filePath);
+
+  //   print('Generating Test file... for \'$fileRelativePath\'');
+
+  //   final isTestFileGenerated = await processFile(filePath, fileContent, model);
+
+  //   if (isTestFileGenerated) {
+  //     print('✅ Test file generated successfully for $fileRelativePath');
+  //   } else {
+  //     print('❌ Test file not generated successfully');
+  //   }
+  // }
 }
