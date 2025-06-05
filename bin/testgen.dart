@@ -2,36 +2,35 @@ import 'dart:io';
 
 import 'package:args/args.dart';
 import 'package:path/path.dart' as path;
-import 'package:testgen/src/coverage/coverage_options.dart';
 import 'package:testgen/src/coverage/util.dart';
 
-ArgParser _createArgParser(CoverageOptions defaultCoverageOptions) =>
+ArgParser _createArgParser() =>
     ArgParser()
       ..addOption(
         'package',
-        defaultsTo: defaultCoverageOptions.package,
+        defaultsTo: '.',
         help: 'Root directory of the package to test.',
       )
       ..addOption(
         'port',
-        defaultsTo: defaultCoverageOptions.vmServicePort,
+        defaultsTo: '0',
         help: 'VM service port. Defaults to using any free port.',
       )
       ..addFlag(
         'function-coverage',
         abbr: 'f',
-        defaultsTo: defaultCoverageOptions.functionCoverage,
+        defaultsTo: false,
         help: 'Collect function coverage info.',
       )
       ..addFlag(
         'branch-coverage',
         abbr: 'b',
-        defaultsTo: defaultCoverageOptions.branchCoverage,
+        defaultsTo: false,
         help: 'Collect branch coverage info.',
       )
       ..addMultiOption(
         'scope-output',
-        defaultsTo: defaultCoverageOptions.scopeOutput,
+        defaultsTo: [],
         help:
             'restrict coverage results so that only scripts that start with '
             'the provided package path are considered. Defaults to the name of '
@@ -57,11 +56,8 @@ class Flags {
   final List<String> scopeOutput;
 }
 
-Future<Flags> parseArgs(
-  List<String> arguments,
-  CoverageOptions defaultCoverageOptions,
-) async {
-  final parser = _createArgParser(defaultCoverageOptions);
+Future<Flags> parseArgs(List<String> arguments) async {
+  final parser = _createArgParser();
   final results = parser.parse(arguments);
 
   void printUsage() {
@@ -113,5 +109,5 @@ ${parser.usage}
 }
 
 Future<void> main(List<String> arguments) async {
-  await parseArgs(arguments, CoverageOptions.defaultOptions);
+  await parseArgs(arguments);
 }
