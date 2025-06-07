@@ -2,6 +2,7 @@ import 'dart:io';
 
 import 'package:args/args.dart';
 import 'package:path/path.dart' as path;
+import 'package:testgen/src/coverage/coverage_integration.dart';
 import 'package:testgen/src/coverage/util.dart';
 
 ArgParser _createArgParser() =>
@@ -109,5 +110,14 @@ ${parser.usage}
 }
 
 Future<void> main(List<String> arguments) async {
-  await parseArgs(arguments);
+  final flags = await parseArgs(arguments);
+  final coverage = await runTestsAndCollectCoverage(
+    flags.package,
+    flags.vmServicePort,
+    flags.branchCoverage,
+    flags.functionCoverage,
+    flags.scopeOutput.toSet(),
+  );
+  print("Coverage Collected:");
+  print('Total lines: ${coverage.values}');
 }
