@@ -2,7 +2,7 @@ import 'dart:io';
 
 import 'package:args/args.dart';
 import 'package:path/path.dart' as path;
-import 'package:testgen/src/coverage/coverage_integration.dart';
+import 'package:testgen/src/coverage/coverage_collection.dart';
 import 'package:testgen/src/coverage/util.dart';
 
 ArgParser _createArgParser() =>
@@ -54,7 +54,7 @@ class Flags {
   final String vmServicePort;
   final bool branchCoverage;
   final bool functionCoverage;
-  final List<String> scopeOutput;
+  final Set<String> scopeOutput;
 }
 
 Future<Flags> parseArgs(List<String> arguments) async {
@@ -98,26 +98,24 @@ ${parser.usage}
   final scopes =
       results['scope-output'].isEmpty
           ? getAllWorkspaceNames(packageDir)
-          : results['scope-output'];
+          : results['scope-output'] as List<String>;
 
   return Flags(
     package: packageDir,
     vmServicePort: results['port'],
     branchCoverage: results['branch-coverage'],
     functionCoverage: results['function-coverage'],
-    scopeOutput: scopes,
+    scopeOutput: scopes.toSet(),
   );
 }
 
 Future<void> main(List<String> arguments) async {
   final flags = await parseArgs(arguments);
-  final coverage = await runTestsAndCollectCoverage(
+  await runTestsAndCollectCoverage(
     flags.package,
-    flags.vmServicePort,
-    flags.branchCoverage,
-    flags.functionCoverage,
-    flags.scopeOutput.toSet(),
+    vmServicePort: flags.vmServicePort,
+    branchCoverage: flags.branchCoverage,
+    functionCoverage: flags.functionCoverage,
+    scopeOutput: flags.scopeOutput,
   );
-  print("Coverage Collected:");
-  print('Total lines: ${coverage.values}');
 }

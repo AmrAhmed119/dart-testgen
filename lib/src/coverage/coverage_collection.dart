@@ -10,15 +10,15 @@ typedef CoverageData = Map<String, dynamic>;
 final _allProcesses = <Process>[];
 
 Future<void> _dartRun(
-  List<String> args,
-  String packageDir, {
+  List<String> args, {
+  required String packageAbsolutePath,
   required void Function(String) onStdout,
   required void Function(String) onStderr,
 }) async {
   final process = await Process.start(
     Platform.executable,
     args,
-    workingDirectory: packageDir,
+    workingDirectory: packageAbsolutePath,
   );
   _allProcesses.add(process);
 
@@ -52,13 +52,33 @@ void _watchExitSignal(ProcessSignal signal) {
   signal.watch().listen(_killSubprocessesAndExit);
 }
 
+/// Runs Dart tests in the specified package directory and collects coverage data.
+///
+/// This function starts a Dart test process with the appropriate VM service
+/// and coverage flags, waits for the VM service URI to become available,
+/// and then collects coverage data from all isolates in the running Dart VM.
+/// The collected coverage data is returned as a map of coverage information.
+///
+/// [packageDir] specifies the root directory of the Dart package to test.
+///
+/// [vmServicePort] specifies the port to use for the Dart VM service,
+/// default is '0', which means it will use any available port.
+///
+/// [branchCoverage] enables branch coverage collection if true.
+///
+/// [functionCoverage] enables function-level coverage collection if true.
+///
+/// [scopeOutput] restricts coverage output to scripts that start with
+/// any of the provided paths.
+///
+/// Returns a [CoverageData] map containing the merged coverage information for all isolates.
 Future<CoverageData> runTestsAndCollectCoverage(
-  String packageDir,
-  String vmServicePort,
-  bool branchCoverage,
-  bool functionCoverage,
-  Set<String> scopeOutput,
-) async {
+  String packageDir, {
+  String vmServicePort = '0',
+  bool branchCoverage = false,
+  bool functionCoverage = false,
+  required Set<String> scopeOutput,
+}) async {
   _watchExitSignal(ProcessSignal.sighup);
   _watchExitSignal(ProcessSignal.sigint);
   if (!Platform.isWindows) {
@@ -75,7 +95,7 @@ Future<CoverageData> runTestsAndCollectCoverage(
       '--enable-vm-service=$vmServicePort',
       'test',
     ],
-    packageDir,
+    packageAbsolutePath: packageDir,
     onStdout: (line) {
       if (!serviceUriCompleter.isCompleted) {
         final uri = extractVMServiceUri(line);
@@ -95,11 +115,9 @@ Future<CoverageData> runTestsAndCollectCoverage(
 
   final serviceUri = await serviceUriCompleter.future;
 
-  CoverageData coverage = {};
-  await Chain.capture(
+  CoverageData coverageResults = await Chain.capture(
     () async {
-      print("Collecting coverage from $packageDir");
-      coverage = await collect(
+      return await collect(
         serviceUri,
         true,
         true,
@@ -120,5 +138,5 @@ Future<CoverageData> runTestsAndCollectCoverage(
 
   await testProcess;
 
-  return coverage;
+  return coverageResults;
 }
