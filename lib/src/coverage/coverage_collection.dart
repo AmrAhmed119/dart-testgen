@@ -8,6 +8,7 @@ import 'package:testgen/src/coverage/util.dart';
 typedef CoverageData = Map<String, dynamic>;
 
 final _allProcesses = <Process>[];
+bool _isSignalsWatched = false;
 
 Future<void> _dartRun(
   List<String> args, {
@@ -79,10 +80,13 @@ Future<CoverageData> runTestsAndCollectCoverage(
   bool functionCoverage = false,
   required Set<String> scopeOutput,
 }) async {
-  _watchExitSignal(ProcessSignal.sighup);
-  _watchExitSignal(ProcessSignal.sigint);
-  if (!Platform.isWindows) {
-    _watchExitSignal(ProcessSignal.sigterm);
+  if (!_isSignalsWatched) {
+    _watchExitSignal(ProcessSignal.sighup);
+    _watchExitSignal(ProcessSignal.sigint);
+    if (!Platform.isWindows) {
+      _watchExitSignal(ProcessSignal.sigterm);
+    }
+    _isSignalsWatched = true;
   }
 
   final serviceUriCompleter = Completer<Uri>();
