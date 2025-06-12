@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'dart:io';
 
 import 'package:path/path.dart' as path;
@@ -21,4 +22,20 @@ YamlMap _loadPubspec(String packageRoot) {
   final pubspecPath = getPubspecPath(packageRoot);
   final yaml = File(pubspecPath).readAsStringSync();
   return loadYaml(yaml, sourceUrl: Uri.file(pubspecPath)) as YamlMap;
+}
+
+Uri? extractVMServiceUri(String str) {
+  final listeningMessageRegExp = RegExp(
+    r'(?:Observatory|The Dart VM service is) listening on ((http|//)[a-zA-Z0-9:/=_\-\.\[\]]+)',
+  );
+  final match = listeningMessageRegExp.firstMatch(str);
+  if (match != null) {
+    return Uri.parse(match[1]!);
+  }
+  return null;
+}
+
+extension StandardOutExtension on Stream<List<int>> {
+  Stream<String> lines() =>
+      transform(const SystemEncoding().decoder).transform(const LineSplitter());
 }
