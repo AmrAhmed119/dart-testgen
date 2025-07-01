@@ -2,6 +2,7 @@ import 'dart:io';
 
 import 'package:args/args.dart';
 import 'package:path/path.dart' as path;
+import 'package:testgen/src/analyzer/extractor.dart';
 import 'package:testgen/src/coverage/coverage_collection.dart';
 import 'package:testgen/src/coverage/util.dart';
 
@@ -118,4 +119,5 @@ Future<void> main(List<String> arguments) async {
     functionCoverage: flags.functionCoverage,
     scopeOutput: flags.scopeOutput,
   );
+  await extractDeclarations(flags.package);
 }
