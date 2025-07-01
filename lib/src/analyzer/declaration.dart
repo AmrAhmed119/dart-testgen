@@ -60,6 +60,7 @@ Declaration(
   startLine: $startLine,
   endLine: $endLine,
   comments: $comment,
+  parent: ${parent?.name ?? 'null'},
   dependsOn: $dependsOn
 )''';
   }

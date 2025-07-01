@@ -47,7 +47,12 @@ List<Declaration> _parseVariableDeclaration(
   final comments = declaration.documentationComment?.toSource() ?? '';
   final declarations = <Declaration>[];
 
-  for (final variable in declaration.variables.variables) {
+  final ast.VariableDeclarationList variableList =
+      declaration is ast.TopLevelVariableDeclaration
+          ? declaration.variables
+          : declaration.fields;
+
+  for (final variable in variableList.variables) {
     final id = variable.declaredFragment?.element.id ?? failedToExtractID;
     declarations.add(
       Declaration(
