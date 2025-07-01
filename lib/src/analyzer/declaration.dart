@@ -1,10 +1,15 @@
 /// Represents a code declaration (such as a class, function, or variable)
 /// within a source file.
 ///
-/// Stores metadata about the declaration, including its unique [id], [name],
-/// source file [path], line range ([startLine] to [endLine]), and the actual
-/// [sourceCode]. Optionally, a list of [comments] associated with the 
-/// declaration can be provided.
+/// Stores metadata about the declaration, including:
+/// - a unique [id]
+/// - the [name] of the declaration
+/// - the [sourceCode] for the declaration
+/// - the source file [path]
+/// - the line range ([startLine] to [endLine]) in the file
+/// - any associated [comment] (as a string)
+/// - an optional [parent] declaration (for nested structures - typically
+///   used for methods and fields inside a class)
 ///
 /// The [dependsOn] list tracks other [Declaration]s that this declaration
 /// depends on, allowing for dependency analysis between code elements.
@@ -16,13 +21,16 @@ class Declaration {
     required this.startLine,
     required this.endLine,
     required this.path,
-    this.comments = const [],
+    this.comment = '',
+    this.parent,
   });
 
   final int id;
 
   final String name;
 
+  // May be need to be a list of strings?
+  // Will contain the annotations described above the declaration.
   final String sourceCode;
 
   final int startLine;
@@ -31,7 +39,9 @@ class Declaration {
 
   final String path;
 
-  final List<String> comments;
+  final String comment;
+
+  final Declaration? parent;
 
   final List<Declaration> dependsOn = [];
 
@@ -46,9 +56,10 @@ Declaration(
   id: $id,
   name: $name,
   path: $path,
+  sourceCode: $sourceCode,
   startLine: $startLine,
   endLine: $endLine,
-  comments: $comments,
+  comments: $comment,
   dependsOn: $dependsOn
 )''';
   }
