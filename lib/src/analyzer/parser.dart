@@ -44,7 +44,7 @@ List<Declaration> _parseVariableDeclaration(
   final sourceCode = declaration.toSource();
   final startLine = lineInfo.getLocation(declaration.offset).lineNumber;
   final endLine = lineInfo.getLocation(declaration.end).lineNumber;
-  final comments = declaration.documentationComment?.toSource() ?? '';
+  final comments = _extractComment(declaration.documentationComment);
   final declarations = <Declaration>[];
 
   final ast.VariableDeclarationList variableList =
@@ -84,7 +84,7 @@ Declaration _parseFunctionDeclaration(
   startLine: lineInfo.getLocation(declaration.offset).lineNumber,
   endLine: lineInfo.getLocation(declaration.end).lineNumber,
   path: path,
-  comment: declaration.documentationComment?.toSource() ?? '',
+  comment: _extractComment(declaration.documentationComment),
   parent: parent,
 );
 
@@ -103,6 +103,7 @@ List<Declaration> _parseClassDeclaration(
     sourceCode: declaration.toSource(),
     startLine: lineInfo.getLocation(declaration.offset).lineNumber,
     endLine: lineInfo.getLocation(declaration.end).lineNumber,
+    comment: _extractComment(declaration.documentationComment),
     path: path,
   );
 
@@ -146,6 +147,20 @@ Declaration _parseConstructorDeclaration(
   startLine: lineInfo.getLocation(declaration.offset).lineNumber,
   endLine: lineInfo.getLocation(declaration.end).lineNumber,
   path: path,
-  comment: declaration.documentationComment?.toSource() ?? '',
+  comment: _extractComment(declaration.documentationComment),
   parent: parent,
 );
+
+String _extractComment(ast.Comment? comment) {
+  final buffer = StringBuffer();
+
+  buffer.writeAll(
+    comment?.tokens.map((token) {
+          return token.lexeme.trim();
+        }) ??
+        [],
+    '\n',
+  );
+
+  return buffer.toString();
+}
