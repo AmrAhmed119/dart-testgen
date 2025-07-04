@@ -4,25 +4,40 @@ import 'package:testgen/src/analyzer/declaration.dart';
 
 const int failedToExtractID = -1;
 
-List<Declaration> parseCompilationUnit(ast.CompilationUnit unit, String path) {
+List<Declaration> parseCompilationUnit(
+  ast.CompilationUnit unit,
+  String path,
+  String content,
+) {
   final declarations = <Declaration>[];
   final lineInfo = unit.lineInfo;
 
   for (final member in unit.declarations) {
     switch (member) {
-      case ast.ClassDeclaration():
-        declarations.addAll(_parseClassDeclaration(member, lineInfo, path));
-        break;
-      case ast.FunctionDeclaration():
-        declarations.add(_parseFunctionDeclaration(member, lineInfo, path));
-        break;
       case ast.TopLevelVariableDeclaration():
-        declarations.addAll(_parseVariableDeclaration(member, lineInfo, path));
+        declarations.addAll(
+          _parseTopLevelVariableDeclaration(member, lineInfo, path, content),
+        );
         break;
-      // Handle other types of declarations if needed
-      // Left for upcoming issues
-      // ex: MixinDeclaration, ExtensionDeclaration, EnumDeclaration, TypeAlias
-      default:
+      case ast.ExtensionDeclaration() ||
+          ast.ClassDeclaration() ||
+          ast.MixinDeclaration() ||
+          ast.EnumDeclaration() ||
+          ast.ExtensionTypeDeclaration():
+        declarations.addAll(
+          _parseCompoundDeclaration(member, lineInfo, path, content),
+        );
+        break;
+      case ast.NamedCompilationUnitMember():
+        declarations.add(
+          _parseDeclaration(
+            member,
+            lineInfo,
+            path,
+            content,
+            name: member.name.lexeme,
+          ),
+        );
         break;
     }
   }
@@ -30,40 +45,49 @@ List<Declaration> parseCompilationUnit(ast.CompilationUnit unit, String path) {
   return declarations;
 }
 
-// handle both TopLevelVariableDeclaration & FieldDeclaration
-List<Declaration> _parseVariableDeclaration(
-  dynamic declaration,
+Declaration _parseDeclaration(
+  ast.Declaration declaration,
   LineInfo lineInfo,
-  String path, {
+  String path,
+  String content, {
+  String? name,
+  int? groupOffset,
+  int? groupEnd,
   Declaration? parent,
-}) {
-  // Variable Declaration might contain multiple variables
-  // (ex: int x, y, z = 1), then all the variables will have the same fields
-  // except for the variable id which is unique for each variable.
+}) => Declaration(
+  declaration.declaredFragment?.element.id ?? failedToExtractID,
+  name: name ?? '',
+  sourceCode: content
+      .substring(groupOffset ?? declaration.offset, groupEnd ?? declaration.end)
+      .split('\n'),
+  startLine: lineInfo.getLocation(groupOffset ?? declaration.offset).lineNumber,
+  endLine: lineInfo.getLocation(groupEnd ?? declaration.end).lineNumber,
+  path: path,
+  parent: parent,
+);
 
-  final sourceCode = declaration.toSource();
-  final startLine = lineInfo.getLocation(declaration.offset).lineNumber;
-  final endLine = lineInfo.getLocation(declaration.end).lineNumber;
-  final comments = _extractComment(declaration.documentationComment);
+List<Declaration> _parseTopLevelVariableDeclaration(
+  ast.TopLevelVariableDeclaration declaration,
+  LineInfo lineInfo,
+  String path,
+  String content,
+) {
+  // TopLevelVariableDeclaration might contain multiple variables
+  // (ex: int? x, y, z = 1), all the variables will have the same fields
+  // except for the id field which is unique for each variable.
+
   final declarations = <Declaration>[];
 
-  final ast.VariableDeclarationList variableList =
-      declaration is ast.TopLevelVariableDeclaration
-          ? declaration.variables
-          : declaration.fields;
-
-  for (final variable in variableList.variables) {
-    final id = variable.declaredFragment?.element.id ?? failedToExtractID;
+  for (final variable in declaration.variables.variables) {
     declarations.add(
-      Declaration(
-        id,
+      _parseDeclaration(
+        variable,
+        lineInfo,
+        path,
+        content,
         name: variable.name.lexeme,
-        sourceCode: sourceCode,
-        startLine: startLine,
-        endLine: endLine,
-        path: path,
-        comment: comments,
-        parent: parent,
+        groupOffset: declaration.offset,
+        groupEnd: declaration.end,
       ),
     );
   }
@@ -71,59 +95,101 @@ List<Declaration> _parseVariableDeclaration(
   return declarations;
 }
 
-// handle both FunctionDeclaration & MethodDeclaration
-Declaration _parseFunctionDeclaration(
-  dynamic declaration,
-  LineInfo lineInfo,
-  String path, {
-  Declaration? parent,
-}) => Declaration(
-  declaration.declaredFragment?.element.id ?? failedToExtractID,
-  name: declaration.name.lexeme,
-  sourceCode: declaration.toSource(),
-  startLine: lineInfo.getLocation(declaration.offset).lineNumber,
-  endLine: lineInfo.getLocation(declaration.end).lineNumber,
-  path: path,
-  comment: _extractComment(declaration.documentationComment),
-  parent: parent,
-);
-
-List<Declaration> _parseClassDeclaration(
-  ast.ClassDeclaration declaration,
+List<Declaration> _parseCompoundDeclaration(
+  ast.CompilationUnitMember declaration,
   LineInfo lineInfo,
   String path,
+  String content,
 ) {
-  // ClassDeclaration might contain multiple members (fields, methods, etc.)
-  // We need to create a declaration for the class itself and for each
-  // method or field within the class.
+  // Compound declarations include ClassDeclaration, MixinDeclaration, etc
+  // These are declarations that can contain class members such as methods,
+  // fields, and constructors.
+  // For each compound declaration, we create a Declaration for the compound
+  // itself, as well as for each of its contained class members.
 
-  Declaration parent = Declaration(
-    declaration.declaredFragment?.element.id ?? failedToExtractID,
-    name: declaration.name.lexeme,
-    sourceCode: declaration.toSource(),
-    startLine: lineInfo.getLocation(declaration.offset).lineNumber,
-    endLine: lineInfo.getLocation(declaration.end).lineNumber,
-    comment: _extractComment(declaration.documentationComment),
-    path: path,
+  final (String? name, List<ast.ClassMember> members) = switch (declaration) {
+    ast.ClassDeclaration(:final name, :final members) => (name.lexeme, members),
+    ast.MixinDeclaration(:final name, :final members) => (name.lexeme, members),
+    ast.EnumDeclaration(:final name, :final members) => (name.lexeme, members),
+    ast.ExtensionTypeDeclaration(:final name, :final members) => (
+      name.lexeme,
+      members,
+    ),
+    ast.ExtensionDeclaration(:final name, :final members) => (
+      name?.lexeme,
+      members,
+    ),
+    _ => ('', []),
+  };
+
+  final parent = _parseDeclaration(
+    declaration,
+    lineInfo,
+    path,
+    content,
+    name: name,
   );
 
-  final declarations = <Declaration>[parent];
+  return [
+    parent,
+    ..._parseClassMembers(members, lineInfo, path, content, parent),
+    if (declaration is ast.EnumDeclaration)
+      ..._parseEnumConstants(declaration, lineInfo, path, content, parent),
+  ];
+}
 
-  for (final member in declaration.members) {
+List<Declaration> _parseClassMembers(
+  List<ast.ClassMember> members,
+  LineInfo lineInfo,
+  String path,
+  String content,
+  Declaration parent,
+) {
+  final declarations = <Declaration>[];
+
+  for (final member in members) {
     switch (member) {
       case ast.MethodDeclaration():
         declarations.add(
-          _parseFunctionDeclaration(member, lineInfo, path, parent: parent),
+          _parseDeclaration(
+            member,
+            lineInfo,
+            path,
+            content,
+            name: member.name.lexeme,
+            parent: parent,
+          ),
         );
         break;
       case ast.FieldDeclaration():
-        declarations.addAll(
-          _parseVariableDeclaration(member, lineInfo, path, parent: parent),
-        );
+        for (final variable in member.fields.variables) {
+          declarations.add(
+            _parseDeclaration(
+              variable,
+              lineInfo,
+              path,
+              content,
+              name: variable.name.lexeme,
+              groupOffset: member.offset,
+              groupEnd: member.end,
+              parent: parent,
+            ),
+          );
+        }
         break;
       case ast.ConstructorDeclaration():
         declarations.add(
-          _parseConstructorDeclaration(member, lineInfo, path, parent: parent),
+          _parseDeclaration(
+            member,
+            lineInfo,
+            path,
+            content,
+            name:
+                member.name?.lexeme != null
+                    ? '${parent.name}.${member.name!.lexeme}'
+                    : parent.name,
+            parent: parent,
+          ),
         );
         break;
     }
@@ -132,35 +198,28 @@ List<Declaration> _parseClassDeclaration(
   return declarations;
 }
 
-Declaration _parseConstructorDeclaration(
-  ast.ConstructorDeclaration declaration,
+List<Declaration> _parseEnumConstants(
+  ast.EnumDeclaration declaration,
   LineInfo lineInfo,
-  String path, {
-  Declaration? parent,
-}) => Declaration(
-  declaration.declaredFragment?.element.id ?? failedToExtractID,
-  name:
-      declaration.name?.lexeme != null
-          ? '${parent!.name}.${declaration.name!.lexeme}'
-          : parent!.name,
-  sourceCode: declaration.toSource(),
-  startLine: lineInfo.getLocation(declaration.offset).lineNumber,
-  endLine: lineInfo.getLocation(declaration.end).lineNumber,
-  path: path,
-  comment: _extractComment(declaration.documentationComment),
-  parent: parent,
-);
+  String path,
+  String content,
+  Declaration parent,
+) {
+  final declarations = <Declaration>[];
 
-String _extractComment(ast.Comment? comment) {
-  final buffer = StringBuffer();
+  for (final constant in declaration.constants) {
+    final constantName = constant.name.lexeme;
+    declarations.add(
+      _parseDeclaration(
+        constant,
+        lineInfo,
+        path,
+        content,
+        name: constantName,
+        parent: parent,
+      ),
+    );
+  }
 
-  buffer.writeAll(
-    comment?.tokens.map((token) {
-          return token.lexeme.trim();
-        }) ??
-        [],
-    '\n',
-  );
-
-  return buffer.toString();
+  return declarations;
 }
