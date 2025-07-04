@@ -1,18 +1,17 @@
 /// Represents a code declaration (such as a class, function, or variable)
 /// within a source file.
 ///
-/// Stores metadata about the declaration, including:
-/// - a unique [id]
-/// - the [name] of the declaration
-/// - the [sourceCode] for the declaration
-/// - the source file [path]
-/// - the line range ([startLine] to [endLine]) in the file
-/// - any associated [comment] (as a string)
-/// - an optional [parent] declaration (for nested structures - typically
-///   used for methods and fields inside a class)
+/// This class stores metadata about the declaration, including:
+/// - A unique [id] for the declaration.
+/// - The [name] of the declaration.
+/// - The [sourceCode] lines for the declaration.
+/// - The source file [path] where the declaration is found.
+/// - The line range ([startLine] to [endLine]) in the file.
+/// - An optional [parent] declaration (for nested structures,
+///   e.g., methods inside a class).
+/// - A list of [dependsOn] declarations that this declaration depends on.
 ///
-/// The [dependsOn] list tracks other [Declaration]s that this declaration
-/// depends on, allowing for dependency analysis between code elements.
+/// This structure enables tracking of code elements and their relationships.
 class Declaration {
   Declaration(
     this.id, {
@@ -21,7 +20,6 @@ class Declaration {
     required this.startLine,
     required this.endLine,
     required this.path,
-    this.comment = '',
     this.parent,
   });
 
@@ -29,17 +27,15 @@ class Declaration {
 
   final String name;
 
-  // May be need to be a list of strings?
-  // Will contain the annotations described above the declaration.
-  final String sourceCode;
+  /// Lines of source code for the declaration (inlcuding comments, 
+  /// annotations, and the code itself).
+  final List<String> sourceCode;
 
   final int startLine;
 
   final int endLine;
 
   final String path;
-
-  final String comment;
 
   final Declaration? parent;
 
@@ -59,7 +55,6 @@ Declaration(
   sourceCode: $sourceCode,
   startLine: $startLine,
   endLine: $endLine,
-  comments: $comment,
   parent: ${parent?.name ?? 'null'},
   dependsOn: $dependsOn
 )''';

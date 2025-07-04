@@ -32,9 +32,12 @@ Future<List<Declaration>> extractDeclarations(String packageRoot) async {
     final context = collection.contextFor(filePath);
     final session = context.currentSession;
     final resolved = await session.getResolvedUnit(filePath);
+    final content = await File(filePath).readAsString();
 
     if (resolved is ResolvedUnitResult) {
-      visitedDeclarations.addAll(parseCompilationUnit(resolved.unit, filePath));
+      visitedDeclarations.addAll(
+        parseCompilationUnit(resolved.unit, filePath, content),
+      );
     }
   }
 
