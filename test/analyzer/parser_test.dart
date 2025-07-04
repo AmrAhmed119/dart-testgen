@@ -1,105 +1,263 @@
-import 'package:analyzer/dart/analysis/utilities.dart';
+import 'dart:io';
+import 'package:analyzer/dart/analysis/analysis_context_collection.dart';
+import 'package:analyzer/dart/analysis/results.dart';
 import 'package:test/test.dart';
+import 'package:testgen/src/analyzer/declaration.dart';
 import 'package:testgen/src/analyzer/parser.dart';
+import 'package:path/path.dart' as path;
+
+Declaration findDeclarationByName(
+  List<Declaration> declarations,
+  String name,
+) => declarations.firstWhere((d) => d.name == name);
 
 void main() {
+  late List<Declaration> declarations;
+
+  setUpAll(() async {
+    final codePath = 'test/analyzer/code.dart';
+    final absolute = path.normalize(path.absolute(codePath));
+    final codeContent = await File(absolute).readAsString();
+
+    // Set up analyzer context for resolving
+    final collection = AnalysisContextCollection(includedPaths: [absolute]);
+    final context = collection.contextFor(absolute);
+    final session = context.currentSession;
+    final result = await session.getResolvedUnit(absolute);
+
+    if (result is ResolvedUnitResult) {
+      declarations = parseCompilationUnit(result.unit, codePath, codeContent);
+    } else {
+      declarations = [];
+    }
+  });
+
   group('parseCompilationUnit', () {
     test('parses top-level variable declaration', () {
-      const source = '''
-/// mutli variable declaration
-int a = 5, b = 10;
-''';
+      final a = findDeclarationByName(declarations, 'a');
+      final b = findDeclarationByName(declarations, 'b');
 
-      final unit = parseString(content: source).unit;
-      final declarations = parseCompilationUnit(unit, 'test_file.dart');
+      expect(a.name, 'a');
+      expect(a.sourceCode, [
+        '/// mutli variable declaration',
+        'int a = 5, b = 10;',
+      ]);
+      expect(a.startLine, 1);
+      expect(a.endLine, 2);
+      expect(a.parent, null);
 
-      expect(declarations.length, 2);
-      expect(declarations[0].name, 'a');
-      expect(declarations[1].name, 'b');
-      expect(declarations[0].path, 'test_file.dart');
-      expect(declarations[0].startLine, 1);
-      expect(declarations[0].endLine, 2);
-      expect(declarations[0].comment, '/// mutli variable declaration');
-      expect(declarations[1].comment, '/// mutli variable declaration');
+      expect(b.name, 'b');
+      expect(b.sourceCode, [
+        '/// mutli variable declaration',
+        'int a = 5, b = 10;',
+      ]);
+      expect(b.startLine, 1);
+      expect(b.endLine, 2);
+      expect(b.parent, null);
     });
 
-    test('parses class with methods and fields', () {
-      const source = '''
-/// Class Definition for [Person]
-/// Multi line comment
-class Person {
+    test('parses extension declaration', () {
+      final ext = findDeclarationByName(declarations, 'StringExtension');
+      final method = findDeclarationByName(declarations, 'reversed');
 
-  /// The name of the person
-  String name;
-  
-  /// Constructor for Person
-  Person.named(this.name);
+      expect(ext.name, 'StringExtension');
+      expect(ext.sourceCode, [
+        'extension StringExtension on String {',
+        "  String reversed() => split('').reversed.join();",
+        '}',
+      ]);
+      expect(ext.startLine, 4);
+      expect(ext.endLine, 6);
+      expect(ext.parent, null);
 
-  /// Greet the person
-  void greet() {
-    print('Hello \$name');
-  }
-}
-''';
+      expect(method.name, 'reversed');
+      expect(method.startLine, 5);
+      expect(method.endLine, 5);
+      expect(method.sourceCode, [
+        "String reversed() => split('').reversed.join();",
+      ]);
+      expect(method.parent, ext);
+    });
 
-      final unit = parseString(content: source).unit;
-      final declarations = parseCompilationUnit(unit, 'test_file.dart');
+    test('parses mixin declaration', () {
+      final mixin = findDeclarationByName(declarations, 'Logger');
+      final method = findDeclarationByName(declarations, 'log');
 
-      expect(declarations.length, 4); // class + field + constructor + method
+      expect(mixin.name, 'Logger');
+      expect(mixin.sourceCode, [
+        'mixin Logger {',
+        "  void log(String message) => print('Log: new Log');",
+        '}',
+      ]);
+      expect(mixin.startLine, 8);
+      expect(mixin.endLine, 10);
+      expect(mixin.parent, null);
 
-      final classDecl = declarations.first;
-      expect(classDecl.name, 'Person');
-      expect(classDecl.startLine, 1);
-      expect(classDecl.endLine, 15);
+      expect(method.name, 'log');
+      expect(method.sourceCode, [
+        "void log(String message) => print('Log: new Log');",
+      ]);
+      expect(method.startLine, 9);
+      expect(method.endLine, 9);
+      expect(method.parent, mixin);
+    });
+
+    test('parses enum declaration', () {
+      final enumDecl = findDeclarationByName(declarations, 'Status');
+      final field = findDeclarationByName(declarations, 'code');
+      final method = findDeclarationByName(declarations, 'describe');
+      final constants = [
+        findDeclarationByName(declarations, 'pending'),
+        findDeclarationByName(declarations, 'approved'),
+        findDeclarationByName(declarations, 'rejected'),
+      ];
+
+      // 1 enum + 3 constants + 1 field + 1 constructor + 1 method = 7
       expect(
-        classDecl.comment,
-        '/// Class Definition for [Person]\n/// Multi line comment',
+        declarations.where((d) => d.parent == enumDecl || d == enumDecl).length,
+        7,
       );
 
-      final field = declarations.firstWhere((d) => d.name == 'name');
-      final method = declarations.firstWhere((d) => d.name == 'greet');
-      final constructor = declarations.firstWhere(
-        (d) => d.name == 'Person.named',
-      );
+      expect(enumDecl.startLine, 12);
+      expect(enumDecl.endLine, 24);
 
+      expect(constants[0].name, 'pending');
+      expect(constants[0].startLine, 13);
+      expect(constants[0].endLine, 13);
+      expect(constants[0].parent, enumDecl);
+
+      expect(constants[1].name, 'approved');
+      expect(constants[1].startLine, 14);
+      expect(constants[1].endLine, 14);
+      expect(constants[1].parent, enumDecl);
+
+      expect(constants[2].name, 'rejected');
+      expect(constants[2].startLine, 15);
+      expect(constants[2].endLine, 15);
+      expect(constants[2].parent, enumDecl);
+
+      expect(field.name, 'code');
+      expect(field.sourceCode, ['final int code;']);
+      expect(field.startLine, 17);
+      expect(field.endLine, 17);
+      expect(field.parent, enumDecl);
+
+      expect(method.name, 'describe');
+      expect(method.sourceCode, [
+        "void describe() {",
+        "    print('Status: \$name with code \$code');",
+        '  }',
+      ]);
+      expect(method.startLine, 21);
+      expect(method.endLine, 23);
+      expect(method.parent, enumDecl);
+    });
+
+    test('parses typedef declaration', () {
+      final callbackDef = findDeclarationByName(declarations, 'IntCallback');
+      final genericDef = findDeclarationByName(declarations, 'Mapper');
+
+      expect(callbackDef.name, 'IntCallback');
+      expect(callbackDef.sourceCode, [
+        '/// A typedef for a callback that takes an int and returns an int.',
+        '/// This is a multi-line comment.',
+        'typedef IntCallback = int Function(int);',
+      ]);
+      expect(callbackDef.startLine, 26);
+      expect(callbackDef.endLine, 28);
+      expect(callbackDef.parent, null);
+
+      expect(genericDef.name, 'Mapper');
+      expect(genericDef.sourceCode, [
+        '/// generic typedef',
+        'typedef Mapper<T> = T Function(T value);',
+      ]);
+      expect(genericDef.startLine, 30);
+      expect(genericDef.endLine, 31);
+      expect(genericDef.parent, null);
+    });
+
+    test('parses extension type declaration', () {
+      final extType = findDeclarationByName(declarations, 'UserID');
+      final getter = findDeclarationByName(declarations, 'isValid');
+      final method = findDeclarationByName(declarations, 'getUser');
+
+      expect(extType.name, 'UserID');
+      expect(extType.sourceCode, [
+        'extension type UserID(int id) {',
+        '  bool get isValid => id > 0;',
+        '',
+        '  /// get user id in a formatted string',
+        "  String getUser() => 'UserID(\$id)';",
+        '}',
+      ]);
+      expect(extType.startLine, 33);
+      expect(extType.endLine, 38);
+      expect(extType.parent, null);
+
+      expect(getter.name, 'isValid');
+      expect(getter.startLine, 34);
+      expect(getter.endLine, 34);
+      expect(getter.parent, extType);
+
+      expect(method.name, 'getUser');
+      expect(method.startLine, 36);
+      expect(method.endLine, 37);
+      expect(method.parent, extType);
+    });
+
+    test('parses class declaration', () {
+      final classDecl = findDeclarationByName(declarations, 'Person');
+      final field = findDeclarationByName(declarations, 'name');
+      final constructor = findDeclarationByName(declarations, 'Person.named');
+      final method = findDeclarationByName(declarations, 'greet');
+
+      expect(classDecl.name, 'Person');
+      expect(classDecl.startLine, 40);
+      expect(classDecl.endLine, 53);
+      expect(classDecl.parent, null);
+
+      expect(field.name, 'name');
+      expect(field.startLine, 43);
+      expect(field.endLine, 44);
       expect(field.parent, classDecl);
-      expect(field.startLine, 5);
-      expect(field.endLine, 6);
-      expect(field.comment, '/// The name of the person');
 
+      expect(constructor.name, 'Person.named');
+      expect(constructor.sourceCode, [
+        '/// Constructor for Person',
+        '  Person.named(this.name);',
+      ]);
+      expect(constructor.startLine, 46);
+      expect(constructor.endLine, 47);
       expect(constructor.parent, classDecl);
-      expect(constructor.startLine, 8);
-      expect(constructor.endLine, 9);
-      expect(constructor.comment, '/// Constructor for Person');
 
+      expect(method.name, 'greet');
+      expect(method.startLine, 49);
+      expect(method.endLine, 52);
       expect(method.parent, classDecl);
-      expect(method.startLine, 11);
-      expect(method.endLine, 14);
-      expect(method.comment, '/// Greet the person');
     });
 
     test('parses top-level function', () {
-      const source = '''
-/// comment above annotation
-@Deprecated('Use sum instead')
-int sum(int x, int y) => x + y;
-''';
-
-      final unit = parseString(content: source).unit;
-      final declarations = parseCompilationUnit(unit, 'test_file.dart');
-
-      expect(declarations.length, 1);
-      final func = declarations.first;
+      final func = findDeclarationByName(declarations, 'sum');
 
       expect(func.name, 'sum');
-      expect(func.path, 'test_file.dart');
+      expect(func.sourceCode, [
+        '/// comment above annotation',
+        "@Deprecated('Use sum instead')",
+        'int sum(int x, int y) => x + y;',
+      ]);
+      expect(func.startLine, 55);
+      expect(func.endLine, 57);
+      expect(func.parent, null);
+    });
+
+    test('each declaration has a unique id', () {
+      final ids = declarations.map((d) => d.id).toSet();
       expect(
-        func.sourceCode,
-        '@Deprecated(\'Use sum instead\') int sum(int x, int y) => x + y;',
+        ids.length,
+        declarations.length,
+        reason: 'Each declaration should have a unique id',
       );
-      expect(func.startLine, 1);
-      expect(func.endLine, 3);
-      expect(func.comment, '/// comment above annotation');
     });
   });
 }
