@@ -27,7 +27,7 @@ class Declaration {
 
   final String name;
 
-  /// Lines of source code for the declaration (inlcuding comments, 
+  /// Lines of source code for the declaration (inlcuding comments,
   /// annotations, and the code itself).
   final List<String> sourceCode;
 

@@ -2,8 +2,6 @@ import 'package:analyzer/dart/ast/ast.dart' as ast;
 import 'package:analyzer/source/line_info.dart';
 import 'package:testgen/src/analyzer/declaration.dart';
 
-const int failedToExtractID = -1;
-
 List<Declaration> parseCompilationUnit(
   ast.CompilationUnit unit,
   String path,
@@ -54,17 +52,36 @@ Declaration _parseDeclaration(
   int? groupOffset,
   int? groupEnd,
   Declaration? parent,
-}) => Declaration(
-  declaration.declaredFragment?.element.id ?? failedToExtractID,
-  name: name ?? '',
-  sourceCode: content
-      .substring(groupOffset ?? declaration.offset, groupEnd ?? declaration.end)
-      .split('\n'),
-  startLine: lineInfo.getLocation(groupOffset ?? declaration.offset).lineNumber,
-  endLine: lineInfo.getLocation(groupEnd ?? declaration.end).lineNumber,
-  path: path,
-  parent: parent,
-);
+}) {
+  // In fully resolved, valid Dart code, every declaration node is expected
+  // to contain a declaredFragment representing its metadata.
+  // If declaredFragment is unexpectedly null here, throw an error.
+  if (declaration.declaredFragment == null) {
+    throw StateError('''
+        Unexpected AST State:
+        - File: $path
+        - Declaration Type: ${declaration.runtimeType}
+        - Line Number: ${lineInfo.getLocation(declaration.offset).lineNumber}
+        
+        This declaration is missing its 'declaredFragment'
+        ''');
+  }
+  return Declaration(
+    declaration.declaredFragment!.element.id,
+    name: name ?? '',
+    sourceCode: content
+        .substring(
+          groupOffset ?? declaration.offset,
+          groupEnd ?? declaration.end,
+        )
+        .split('\n'),
+    startLine:
+        lineInfo.getLocation(groupOffset ?? declaration.offset).lineNumber,
+    endLine: lineInfo.getLocation(groupEnd ?? declaration.end).lineNumber,
+    path: path,
+    parent: parent,
+  );
+}
 
 List<Declaration> _parseTopLevelVariableDeclaration(
   ast.TopLevelVariableDeclaration declaration,
