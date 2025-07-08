@@ -8,6 +8,7 @@ environment:
 
 # Add regular dependencies here.
 dependencies:
+  analyzer: ^7.4.5
   args: ^2.7.0
   coverage: ^1.14.0
   google_generative_ai: ^0.4.6
