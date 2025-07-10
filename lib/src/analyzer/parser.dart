@@ -2,19 +2,25 @@ import 'package:analyzer/dart/ast/ast.dart' as ast;
 import 'package:analyzer/source/line_info.dart';
 import 'package:testgen/src/analyzer/declaration.dart';
 
-List<Declaration> parseCompilationUnit(
+void parseCompilationUnit(
   ast.CompilationUnit unit,
+  Map<int, Declaration> visitedDeclarations,
+  Map<int, List<Declaration>> toBeResolvedDeclarations,
   String path,
   String content,
 ) {
-  final declarations = <Declaration>[];
   final lineInfo = unit.lineInfo;
 
   for (final member in unit.declarations) {
     switch (member) {
       case ast.TopLevelVariableDeclaration():
-        declarations.addAll(
-          _parseTopLevelVariableDeclaration(member, lineInfo, path, content),
+        _parseTopLevelVariableDeclaration(
+          member,
+          visitedDeclarations,
+          toBeResolvedDeclarations,
+          lineInfo,
+          path,
+          content,
         );
         break;
       case ast.ExtensionDeclaration() ||
@@ -22,25 +28,27 @@ List<Declaration> parseCompilationUnit(
           ast.MixinDeclaration() ||
           ast.EnumDeclaration() ||
           ast.ExtensionTypeDeclaration():
-        declarations.addAll(
-          _parseCompoundDeclaration(member, lineInfo, path, content),
+        _parseCompoundDeclaration(
+          member,
+          visitedDeclarations,
+          toBeResolvedDeclarations,
+          lineInfo,
+          path,
+          content,
         );
         break;
       case ast.NamedCompilationUnitMember():
-        declarations.add(
-          _parseDeclaration(
-            member,
-            lineInfo,
-            path,
-            content,
-            name: member.name.lexeme,
-          ),
+        _parseNamedCompilationUnitMember(
+          member,
+          visitedDeclarations,
+          toBeResolvedDeclarations,
+          lineInfo,
+          path,
+          content,
         );
         break;
     }
   }
-
-  return declarations;
 }
 
 Declaration _parseDeclaration(
@@ -66,6 +74,7 @@ Declaration _parseDeclaration(
         This declaration is missing its 'declaredFragment'
         ''');
   }
+
   return Declaration(
     declaration.declaredFragment!.element.id,
     name: name ?? '',
@@ -83,8 +92,10 @@ Declaration _parseDeclaration(
   );
 }
 
-List<Declaration> _parseTopLevelVariableDeclaration(
+void _parseTopLevelVariableDeclaration(
   ast.TopLevelVariableDeclaration declaration,
+  Map<int, Declaration> visitedDeclarations,
+  Map<int, List<Declaration>> toBeResolvedDeclarations,
   LineInfo lineInfo,
   String path,
   String content,
@@ -93,27 +104,25 @@ List<Declaration> _parseTopLevelVariableDeclaration(
   // (ex: int? x, y, z = 1), all the variables will have the same fields
   // except for the id field which is unique for each variable.
 
-  final declarations = <Declaration>[];
-
   for (final variable in declaration.variables.variables) {
-    declarations.add(
-      _parseDeclaration(
-        variable,
-        lineInfo,
-        path,
-        content,
-        name: variable.name.lexeme,
-        groupOffset: declaration.offset,
-        groupEnd: declaration.end,
-      ),
+    final parsedDeclaration = _parseDeclaration(
+      variable,
+      lineInfo,
+      path,
+      content,
+      name: variable.name.lexeme,
+      groupOffset: declaration.offset,
+      groupEnd: declaration.end,
     );
+    visitedDeclarations[parsedDeclaration.id] = parsedDeclaration;
+    // TODO: Do Resolve here
   }
-
-  return declarations;
 }
 
-List<Declaration> _parseCompoundDeclaration(
+void _parseCompoundDeclaration(
   ast.CompilationUnitMember declaration,
+  Map<int, Declaration> visitedDeclarations,
+  Map<int, List<Declaration>> toBeResolvedDeclarations,
   LineInfo lineInfo,
   String path,
   String content,
@@ -146,97 +155,127 @@ List<Declaration> _parseCompoundDeclaration(
     content,
     name: name,
   );
+  visitedDeclarations[parent.id] = parent;
+  // TODO: Do Resolve here for parent
 
-  return [
+  _parseClassMembers(
+    members,
+    visitedDeclarations,
+    toBeResolvedDeclarations,
+    lineInfo,
+    path,
+    content,
     parent,
-    ..._parseClassMembers(members, lineInfo, path, content, parent),
-    if (declaration is ast.EnumDeclaration)
-      ..._parseEnumConstants(declaration, lineInfo, path, content, parent),
-  ];
+  );
+
+  if (declaration is ast.EnumDeclaration) {
+    _parseEnumConstants(
+      declaration,
+      visitedDeclarations,
+      toBeResolvedDeclarations,
+      lineInfo,
+      path,
+      content,
+      parent,
+    );
+  }
 }
 
-List<Declaration> _parseClassMembers(
+void _parseClassMembers(
   List<ast.ClassMember> members,
+  Map<int, Declaration> visitedDeclarations,
+  Map<int, List<Declaration>> toBeResolvedDeclarations,
   LineInfo lineInfo,
   String path,
   String content,
   Declaration parent,
 ) {
-  final declarations = <Declaration>[];
-
   for (final member in members) {
+    late Declaration parsedDecalaration;
     switch (member) {
       case ast.MethodDeclaration():
-        declarations.add(
-          _parseDeclaration(
-            member,
-            lineInfo,
-            path,
-            content,
-            name: member.name.lexeme,
-            parent: parent,
-          ),
+        parsedDecalaration = _parseDeclaration(
+          member,
+          lineInfo,
+          path,
+          content,
+          name: member.name.lexeme,
+          parent: parent,
         );
         break;
       case ast.FieldDeclaration():
         for (final variable in member.fields.variables) {
-          declarations.add(
-            _parseDeclaration(
-              variable,
-              lineInfo,
-              path,
-              content,
-              name: variable.name.lexeme,
-              groupOffset: member.offset,
-              groupEnd: member.end,
-              parent: parent,
-            ),
+          parsedDecalaration = _parseDeclaration(
+            variable,
+            lineInfo,
+            path,
+            content,
+            name: variable.name.lexeme,
+            groupOffset: member.offset,
+            groupEnd: member.end,
+            parent: parent,
           );
         }
         break;
       case ast.ConstructorDeclaration():
-        declarations.add(
-          _parseDeclaration(
-            member,
-            lineInfo,
-            path,
-            content,
-            name:
-                member.name?.lexeme != null
-                    ? '${parent.name}.${member.name!.lexeme}'
-                    : parent.name,
-            parent: parent,
-          ),
+        parsedDecalaration = _parseDeclaration(
+          member,
+          lineInfo,
+          path,
+          content,
+          name:
+              member.name?.lexeme != null
+                  ? '${parent.name}.${member.name!.lexeme}'
+                  : parent.name,
+          parent: parent,
         );
         break;
     }
+    visitedDeclarations[parsedDecalaration.id] = parsedDecalaration;
+    // TODO: Do Resolve here
   }
-
-  return declarations;
 }
 
-List<Declaration> _parseEnumConstants(
+void _parseEnumConstants(
   ast.EnumDeclaration declaration,
+  Map<int, Declaration> visitedDeclarations,
+  Map<int, List<Declaration>> toBeResolvedDeclarations,
   LineInfo lineInfo,
   String path,
   String content,
   Declaration parent,
 ) {
-  final declarations = <Declaration>[];
-
   for (final constant in declaration.constants) {
-    final constantName = constant.name.lexeme;
-    declarations.add(
-      _parseDeclaration(
-        constant,
-        lineInfo,
-        path,
-        content,
-        name: constantName,
-        parent: parent,
-      ),
+    final parsedDeclaration = _parseDeclaration(
+      constant,
+      lineInfo,
+      path,
+      content,
+      name: constant.name.lexeme,
+      parent: parent,
     );
+    visitedDeclarations[parsedDeclaration.id] = parsedDeclaration;
+    // TODO: Do Resolve here
   }
+}
 
-  return declarations;
+void _parseNamedCompilationUnitMember(
+  ast.NamedCompilationUnitMember member,
+  Map<int, Declaration> visitedDeclarations,
+  Map<int, List<Declaration>> toBeResolvedDeclarations,
+  LineInfo lineInfo,
+  String path,
+  String content,
+) {
+  // NamedCompilationUnitMember includes top-level functions and type aliases
+
+  final parsedDeclaration = _parseDeclaration(
+    member,
+    lineInfo,
+    path,
+    content,
+    name: member.name.lexeme,
+  );
+  visitedDeclarations[parsedDeclaration.id] = parsedDeclaration;
+  // TODO: Do Resolve here
 }

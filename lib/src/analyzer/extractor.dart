@@ -26,7 +26,8 @@ Future<List<Declaration>> extractDeclarations(String packageRoot) async {
     }
   });
 
-  final visitedDeclarations = <Declaration>[];
+  final visitedDeclarations = <int, Declaration>{};
+  final toBeResolvedDeclarations = <int, List<Declaration>>{};
 
   for (final filePath in dartFiles) {
     final context = collection.contextFor(filePath);
@@ -35,11 +36,15 @@ Future<List<Declaration>> extractDeclarations(String packageRoot) async {
     final content = await File(filePath).readAsString();
 
     if (resolved is ResolvedUnitResult) {
-      visitedDeclarations.addAll(
-        parseCompilationUnit(resolved.unit, filePath, content),
+      parseCompilationUnit(
+        resolved.unit,
+        visitedDeclarations,
+        toBeResolvedDeclarations,
+        filePath,
+        content,
       );
     }
   }
 
-  return visitedDeclarations;
+  return visitedDeclarations.values.toList();
 }

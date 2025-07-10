@@ -6,7 +6,7 @@ import 'package:testgen/src/analyzer/declaration.dart';
 import 'package:testgen/src/analyzer/parser.dart';
 import 'package:path/path.dart' as path;
 
-Declaration findDeclarationByName(
+Declaration _findDeclarationByName(
   List<Declaration> declarations,
   String name,
 ) => declarations.firstWhere((d) => d.name == name);
@@ -24,9 +24,17 @@ void main() {
     final context = collection.contextFor(absolute);
     final session = context.currentSession;
     final result = await session.getResolvedUnit(absolute);
+    final visitedDeclarations = <int, Declaration>{};
 
     if (result is ResolvedUnitResult) {
-      declarations = parseCompilationUnit(result.unit, codePath, codeContent);
+      parseCompilationUnit(
+        result.unit,
+        visitedDeclarations,
+        {},
+        codePath,
+        codeContent,
+      );
+      declarations = visitedDeclarations.values.toList();
     } else {
       declarations = [];
     }
@@ -34,8 +42,8 @@ void main() {
 
   group('parseCompilationUnit', () {
     test('parses top-level variable declaration', () {
-      final a = findDeclarationByName(declarations, 'a');
-      final b = findDeclarationByName(declarations, 'b');
+      final a = _findDeclarationByName(declarations, 'a');
+      final b = _findDeclarationByName(declarations, 'b');
 
       expect(a.name, 'a');
       expect(a.sourceCode, [
@@ -57,8 +65,8 @@ void main() {
     });
 
     test('parses extension declaration', () {
-      final ext = findDeclarationByName(declarations, 'StringExtension');
-      final method = findDeclarationByName(declarations, 'reversed');
+      final ext = _findDeclarationByName(declarations, 'StringExtension');
+      final method = _findDeclarationByName(declarations, 'reversed');
 
       expect(ext.name, 'StringExtension');
       expect(ext.sourceCode, [
@@ -80,8 +88,8 @@ void main() {
     });
 
     test('parses mixin declaration', () {
-      final mixin = findDeclarationByName(declarations, 'Logger');
-      final method = findDeclarationByName(declarations, 'log');
+      final mixin = _findDeclarationByName(declarations, 'Logger');
+      final method = _findDeclarationByName(declarations, 'log');
 
       expect(mixin.name, 'Logger');
       expect(mixin.sourceCode, [
@@ -103,13 +111,13 @@ void main() {
     });
 
     test('parses enum declaration', () {
-      final enumDecl = findDeclarationByName(declarations, 'Status');
-      final field = findDeclarationByName(declarations, 'code');
-      final method = findDeclarationByName(declarations, 'describe');
+      final enumDecl = _findDeclarationByName(declarations, 'Status');
+      final field = _findDeclarationByName(declarations, 'code');
+      final method = _findDeclarationByName(declarations, 'describe');
       final constants = [
-        findDeclarationByName(declarations, 'pending'),
-        findDeclarationByName(declarations, 'approved'),
-        findDeclarationByName(declarations, 'rejected'),
+        _findDeclarationByName(declarations, 'pending'),
+        _findDeclarationByName(declarations, 'approved'),
+        _findDeclarationByName(declarations, 'rejected'),
       ];
 
       // 1 enum + 3 constants + 1 field + 1 constructor + 1 method = 7
@@ -154,8 +162,8 @@ void main() {
     });
 
     test('parses typedef declaration', () {
-      final callbackDef = findDeclarationByName(declarations, 'IntCallback');
-      final genericDef = findDeclarationByName(declarations, 'Mapper');
+      final callbackDef = _findDeclarationByName(declarations, 'IntCallback');
+      final genericDef = _findDeclarationByName(declarations, 'Mapper');
 
       expect(callbackDef.name, 'IntCallback');
       expect(callbackDef.sourceCode, [
@@ -178,9 +186,9 @@ void main() {
     });
 
     test('parses extension type declaration', () {
-      final extType = findDeclarationByName(declarations, 'UserID');
-      final getter = findDeclarationByName(declarations, 'isValid');
-      final method = findDeclarationByName(declarations, 'getUser');
+      final extType = _findDeclarationByName(declarations, 'UserID');
+      final getter = _findDeclarationByName(declarations, 'isValid');
+      final method = _findDeclarationByName(declarations, 'getUser');
 
       expect(extType.name, 'UserID');
       expect(extType.sourceCode, [
@@ -207,10 +215,10 @@ void main() {
     });
 
     test('parses class declaration', () {
-      final classDecl = findDeclarationByName(declarations, 'Person');
-      final field = findDeclarationByName(declarations, 'name');
-      final constructor = findDeclarationByName(declarations, 'Person.named');
-      final method = findDeclarationByName(declarations, 'greet');
+      final classDecl = _findDeclarationByName(declarations, 'Person');
+      final field = _findDeclarationByName(declarations, 'name');
+      final constructor = _findDeclarationByName(declarations, 'Person.named');
+      final method = _findDeclarationByName(declarations, 'greet');
 
       expect(classDecl.name, 'Person');
       expect(classDecl.startLine, 40);
@@ -238,7 +246,7 @@ void main() {
     });
 
     test('parses top-level function', () {
-      final func = findDeclarationByName(declarations, 'sum');
+      final func = _findDeclarationByName(declarations, 'sum');
 
       expect(func.name, 'sum');
       expect(func.sourceCode, [
