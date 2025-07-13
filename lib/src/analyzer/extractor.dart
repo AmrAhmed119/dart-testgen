@@ -26,7 +26,13 @@ Future<List<Declaration>> extractDeclarations(String packageRoot) async {
     }
   });
 
+  // Map to hold visited declarations that have been processed
   final visitedDeclarations = <int, Declaration>{};
+
+  // This is used to handle cases where a declaration depends on another
+  // declaration that hasn't been visited yet.
+  // the value is a list of declarations that depend on the key which
+  // is a declaration id that has not been visited yet.
   final toBeResolvedDeclarations = <int, List<Declaration>>{};
 
   for (final filePath in dartFiles) {
@@ -43,6 +49,17 @@ Future<List<Declaration>> extractDeclarations(String packageRoot) async {
         filePath,
         content,
       );
+    }
+  }
+
+  for (final entry in toBeResolvedDeclarations.entries) {
+    final int id = entry.key;
+    final List<Declaration> declarations = entry.value;
+
+    if (visitedDeclarations.containsKey(id)) {
+      for (final declaration in declarations) {
+        declaration.addDependency(visitedDeclarations[id]!);
+      }
     }
   }
 

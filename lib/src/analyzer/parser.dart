@@ -1,6 +1,7 @@
 import 'package:analyzer/dart/ast/ast.dart' as ast;
 import 'package:analyzer/source/line_info.dart';
 import 'package:testgen/src/analyzer/declaration.dart';
+import 'package:testgen/src/analyzer/visitor.dart';
 
 void parseCompilationUnit(
   ast.CompilationUnit unit,
@@ -115,7 +116,14 @@ void _parseTopLevelVariableDeclaration(
       groupEnd: declaration.end,
     );
     visitedDeclarations[parsedDeclaration.id] = parsedDeclaration;
-    // TODO: Do Resolve here
+    declaration.variables.accept(
+      VariableVisitor(
+        variable,
+        parsedDeclaration,
+        visitedDeclarations,
+        toBeResolvedDeclarations,
+      ),
+    );
   }
 }
 

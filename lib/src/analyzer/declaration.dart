@@ -9,7 +9,7 @@
 /// - The line range ([startLine] to [endLine]) in the file.
 /// - An optional [parent] declaration (for nested structures,
 ///   e.g., methods inside a class).
-/// - A list of [dependsOn] declarations that this declaration depends on.
+/// - A set of [dependsOn] declarations that this declaration depends on.
 ///
 /// This structure enables tracking of code elements and their relationships.
 class Declaration {
@@ -39,7 +39,7 @@ class Declaration {
 
   final Declaration? parent;
 
-  final List<Declaration> dependsOn = [];
+  final Set<Declaration> dependsOn = {};
 
   void addDependency(Declaration declaration) {
     dependsOn.add(declaration);
