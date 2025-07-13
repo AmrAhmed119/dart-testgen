@@ -117,7 +117,7 @@ void _parseTopLevelVariableDeclaration(
     );
     visitedDeclarations[parsedDeclaration.id] = parsedDeclaration;
     declaration.variables.accept(
-      VariableVisitor(
+      VariableAndTypeAliasVisitor(
         variable,
         parsedDeclaration,
         visitedDeclarations,
@@ -285,5 +285,12 @@ void _parseNamedCompilationUnitMember(
     name: member.name.lexeme,
   );
   visitedDeclarations[parsedDeclaration.id] = parsedDeclaration;
-  // TODO: Do Resolve here
+  member.accept(
+    VariableAndTypeAliasVisitor(
+      member,
+      parsedDeclaration,
+      visitedDeclarations,
+      toBeResolvedDeclarations,
+    ),
+  );
 }

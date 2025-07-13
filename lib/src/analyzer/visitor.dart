@@ -3,8 +3,8 @@ import 'package:analyzer/dart/ast/visitor.dart';
 import 'package:analyzer/dart/element/element2.dart';
 import 'package:testgen/src/analyzer/declaration.dart';
 
-class VariableVisitor extends RecursiveAstVisitor<void> {
-  VariableVisitor(
+class VariableAndTypeAliasVisitor extends RecursiveAstVisitor<void> {
+  VariableAndTypeAliasVisitor(
     this.astNode,
     this.declaration,
     this.visitedDeclarations,
