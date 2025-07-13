@@ -117,7 +117,7 @@ void _parseTopLevelVariableDeclaration(
     );
     visitedDeclarations[parsedDeclaration.id] = parsedDeclaration;
     declaration.variables.accept(
-      VariableAndTypeAliasVisitor(
+      VariableDependencyVisitor(
         variable,
         parsedDeclaration,
         visitedDeclarations,
@@ -286,7 +286,7 @@ void _parseNamedCompilationUnitMember(
   );
   visitedDeclarations[parsedDeclaration.id] = parsedDeclaration;
   member.accept(
-    VariableAndTypeAliasVisitor(
+    DependencyVisitor(
       member,
       parsedDeclaration,
       visitedDeclarations,
