@@ -164,7 +164,14 @@ void _parseCompoundDeclaration(
     name: name,
   );
   visitedDeclarations[parent.id] = parent;
-  // TODO: Do Resolve here for parent
+  declaration.accept(
+    CompoundDependencyVisitor(
+      declaration,
+      parent,
+      visitedDeclarations,
+      toBeResolvedDeclarations,
+    ),
+  );
 
   _parseClassMembers(
     members,
@@ -240,7 +247,14 @@ void _parseClassMembers(
         break;
     }
     visitedDeclarations[parsedDecalaration.id] = parsedDecalaration;
-    // TODO: Do Resolve here
+    member.accept(
+      DependencyVisitor(
+        member,
+        parsedDecalaration,
+        visitedDeclarations,
+        toBeResolvedDeclarations,
+      ),
+    );
   }
 }
 

@@ -76,3 +76,62 @@ class VariableDependencyVisitor extends DependencyVisitor {
     }
   }
 }
+
+class CompoundDependencyVisitor extends DependencyVisitor {
+  const CompoundDependencyVisitor(
+    super.astNode,
+    super.declaration,
+    super.visitedDeclarations,
+    super.toBeResolvedDeclarations,
+  );
+
+  void _visitExtendsClause(ast.ExtendsClause? extendsClause) {
+    extendsClause?.superclass.accept(this);
+  }
+
+  void _visitImplementsClause(ast.ImplementsClause? implementsClause) {
+    for (final interface in implementsClause?.interfaces ?? []) {
+      interface.accept(this);
+    }
+  }
+
+  @override
+  void visitClassDeclaration(ast.ClassDeclaration node) {
+    _visitExtendsClause(node.extendsClause);
+
+    final mixins = node.withClause?.mixinTypes ?? [];
+    for (final mixin in mixins) {
+      mixin.accept(this);
+    }
+
+    _visitImplementsClause(node.implementsClause);
+  }
+
+  @override
+  void visitMixinDeclaration(ast.MixinDeclaration node) {
+    final constraints = node.onClause?.superclassConstraints ?? [];
+    for (final constraint in constraints) {
+      constraint.accept(this);
+    }
+
+    _visitImplementsClause(node.implementsClause);
+  }
+
+  @override
+  void visitEnumDeclaration(ast.EnumDeclaration node) {
+    _visitImplementsClause(node.implementsClause);
+  }
+
+  @override
+  void visitExtensionDeclaration(ast.ExtensionDeclaration node) {
+    node.onClause?.extendedType.accept(this);
+  }
+
+  @override
+  void visitExtensionTypeDeclaration(ast.ExtensionTypeDeclaration node) {
+    // target type of the extension type
+    node.representation.accept(this);
+
+    _visitImplementsClause(node.implementsClause);
+  }
+}
