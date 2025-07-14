@@ -277,7 +277,14 @@ void _parseEnumConstants(
       parent: parent,
     );
     visitedDeclarations[parsedDeclaration.id] = parsedDeclaration;
-    // TODO: Do Resolve here
+    constant.accept(
+      DependencyVisitor(
+        constant,
+        parsedDeclaration,
+        visitedDeclarations,
+        toBeResolvedDeclarations,
+      ),
+    );
   }
 }
 
