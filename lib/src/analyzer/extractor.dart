@@ -33,7 +33,7 @@ Future<List<Declaration>> extractDeclarations(String packageRoot) async {
   // declaration that hasn't been visited yet.
   // the value is a list of declarations that depend on the key which
   // is a declaration id that has not been visited yet.
-  final toBeResolvedDeclarations = <int, List<Declaration>>{};
+  final dependencies = <int, List<Declaration>>{};
 
   for (final filePath in dartFiles) {
     final context = collection.contextFor(filePath);
@@ -45,20 +45,20 @@ Future<List<Declaration>> extractDeclarations(String packageRoot) async {
       parseCompilationUnit(
         resolved.unit,
         visitedDeclarations,
-        toBeResolvedDeclarations,
+        dependencies,
         filePath,
         content,
       );
     }
   }
 
-  for (final entry in toBeResolvedDeclarations.entries) {
-    final int id = entry.key;
-    final List<Declaration> declarations = entry.value;
-
+  for (final MapEntry(key: id, value: declarations) in dependencies.entries) {
     if (visitedDeclarations.containsKey(id)) {
       for (final declaration in declarations) {
-        declaration.addDependency(visitedDeclarations[id]!);
+        // Avoid adding self-dependency
+        if (declaration.id != id) {
+          declaration.addDependency(visitedDeclarations[id]!);
+        }
       }
     }
   }

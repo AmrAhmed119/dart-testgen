@@ -16,26 +16,26 @@ void main() {
         'code',
         'type_alias.dart',
       ),
-      ['Class1', 'Class2', 'alias1', 'alias2', 'alias3', 'alias4'],
+      ['Class1', 'Class2', 'Alias1', 'Alias2', 'Alias3', 'Alias4'],
     );
   });
 
   test('Test Type Alias Dependencies', () {
-    expect(decls['alias1']!.dependsOn, hasLength(2));
+    expect(decls['Alias1']!.dependsOn, hasLength(2));
     expect(
-      decls['alias1']!.dependsOn,
+      decls['Alias1']!.dependsOn,
       containsAll([decls['Class1'], decls['Class2']]),
     );
 
-    expect(decls['alias2']!.dependsOn, hasLength(1));
-    expect(decls['alias1']!.dependsOn, contains(decls['Class1']));
+    expect(decls['Alias2']!.dependsOn, hasLength(1));
+    expect(decls['Alias1']!.dependsOn, contains(decls['Class1']));
 
-    expect(decls['alias3']!.dependsOn, hasLength(1));
-    expect(decls['alias3']!.dependsOn, contains(decls['Class2']));
+    expect(decls['Alias3']!.dependsOn, hasLength(1));
+    expect(decls['Alias3']!.dependsOn, contains(decls['Class2']));
 
-    expect(decls['alias4']!.dependsOn, hasLength(2));
+    expect(decls['Alias4']!.dependsOn, hasLength(2));
     expect(
-      decls['alias4']!.dependsOn,
+      decls['Alias4']!.dependsOn,
       containsAll([decls['Class1'], decls['Class2']]),
     );
   });

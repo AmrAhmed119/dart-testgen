@@ -19,14 +19,7 @@ class DependencyVisitor extends RecursiveAstVisitor<void> {
   void _addDependencyById(int? id) {
     if (id == null) return;
 
-    if (visitedDeclarations.containsKey(id)) {
-      final dep = visitedDeclarations[id]!;
-      if (!declaration.dependsOn.contains(dep) && dep != declaration) {
-        declaration.addDependency(dep);
-      }
-    } else {
-      toBeResolvedDeclarations.putIfAbsent(id, () => []).add(declaration);
-    }
+    toBeResolvedDeclarations.putIfAbsent(id, () => []).add(declaration);
   }
 
   // Captures type references such as class names, type parameters.

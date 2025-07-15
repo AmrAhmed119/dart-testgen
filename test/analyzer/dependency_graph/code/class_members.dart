@@ -55,5 +55,6 @@ class Class2 extends Class1 with Logger {
     print(field2);
     print(field4);
     field3 = 3;
+    method4();
   }
 }

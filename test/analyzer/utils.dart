@@ -40,13 +40,16 @@ Future<Map<String, Declaration>> extractDeclarationsForSourceFile(
   for (final MapEntry(key: id, value: declarations) in dependencies.entries) {
     if (visitedDeclarations.containsKey(id)) {
       for (final declaration in declarations) {
-        declaration.addDependency(visitedDeclarations[id]!);
+        if (declaration.id != id) {
+          // Avoid adding self-dependency
+          declaration.addDependency(visitedDeclarations[id]!);
+        }
       }
     }
   }
 
   return {
-    for (var name in names)
+    for (final name in names)
       name: findDeclarationByName(visitedDeclarations.values, name),
   };
 }
