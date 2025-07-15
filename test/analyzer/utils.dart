@@ -7,12 +7,13 @@ import 'package:path/path.dart' as path;
 import 'package:testgen/src/analyzer/parser.dart';
 
 Declaration findDeclarationByName(
-  List<Declaration> declarations,
+  Iterable<Declaration> declarations,
   String name,
 ) => declarations.firstWhere((d) => d.name == name);
 
-Future<List<Declaration>> extractDeclarationsForSourceFile(
+Future<Map<String, Declaration>> extractDeclarationsForSourceFile(
   String filePath,
+  List<String> names,
 ) async {
   final absolute = path.normalize(path.absolute(filePath));
   final content = await File(absolute).readAsString();
@@ -36,16 +37,16 @@ Future<List<Declaration>> extractDeclarationsForSourceFile(
     );
   }
 
-  for (final entry in dependencies.entries) {
-    final int id = entry.key;
-    final List<Declaration> declarations = entry.value;
-
+  for (final MapEntry(key: id, value: declarations) in dependencies.entries) {
     if (visitedDeclarations.containsKey(id)) {
       for (final declaration in declarations) {
         declaration.addDependency(visitedDeclarations[id]!);
       }
     }
   }
-  
-  return visitedDeclarations.values.toList();
+
+  return {
+    for (var name in names)
+      name: findDeclarationByName(visitedDeclarations.values, name),
+  };
 }
