@@ -6,7 +6,7 @@ import 'package:testgen/src/analyzer/visitor.dart';
 void parseCompilationUnit(
   ast.CompilationUnit unit,
   Map<int, Declaration> visitedDeclarations,
-  Map<int, List<Declaration>> toBeResolvedDeclarations,
+  Map<int, List<Declaration>> dependencies,
   String path,
   String content,
 ) {
@@ -18,7 +18,7 @@ void parseCompilationUnit(
         _parseTopLevelVariableDeclaration(
           member,
           visitedDeclarations,
-          toBeResolvedDeclarations,
+          dependencies,
           lineInfo,
           path,
           content,
@@ -32,7 +32,7 @@ void parseCompilationUnit(
         _parseCompoundDeclaration(
           member,
           visitedDeclarations,
-          toBeResolvedDeclarations,
+          dependencies,
           lineInfo,
           path,
           content,
@@ -42,7 +42,7 @@ void parseCompilationUnit(
         _parseNamedCompilationUnitMember(
           member,
           visitedDeclarations,
-          toBeResolvedDeclarations,
+          dependencies,
           lineInfo,
           path,
           content,
@@ -96,7 +96,7 @@ Declaration _parseDeclaration(
 void _parseTopLevelVariableDeclaration(
   ast.TopLevelVariableDeclaration declaration,
   Map<int, Declaration> visitedDeclarations,
-  Map<int, List<Declaration>> toBeResolvedDeclarations,
+  Map<int, List<Declaration>> dependencies,
   LineInfo lineInfo,
   String path,
   String content,
@@ -121,7 +121,7 @@ void _parseTopLevelVariableDeclaration(
         variable,
         parsedDeclaration,
         visitedDeclarations,
-        toBeResolvedDeclarations,
+        dependencies,
       ),
     );
   }
@@ -130,7 +130,7 @@ void _parseTopLevelVariableDeclaration(
 void _parseCompoundDeclaration(
   ast.CompilationUnitMember declaration,
   Map<int, Declaration> visitedDeclarations,
-  Map<int, List<Declaration>> toBeResolvedDeclarations,
+  Map<int, List<Declaration>> dependencies,
   LineInfo lineInfo,
   String path,
   String content,
@@ -169,14 +169,14 @@ void _parseCompoundDeclaration(
       declaration,
       parent,
       visitedDeclarations,
-      toBeResolvedDeclarations,
+      dependencies,
     ),
   );
 
   _parseClassMembers(
     members,
     visitedDeclarations,
-    toBeResolvedDeclarations,
+    dependencies,
     lineInfo,
     path,
     content,
@@ -187,7 +187,7 @@ void _parseCompoundDeclaration(
     _parseEnumConstants(
       declaration,
       visitedDeclarations,
-      toBeResolvedDeclarations,
+      dependencies,
       lineInfo,
       path,
       content,
@@ -199,7 +199,7 @@ void _parseCompoundDeclaration(
 void _parseClassMembers(
   List<ast.ClassMember> members,
   Map<int, Declaration> visitedDeclarations,
-  Map<int, List<Declaration>> toBeResolvedDeclarations,
+  Map<int, List<Declaration>> dependencies,
   LineInfo lineInfo,
   String path,
   String content,
@@ -252,7 +252,7 @@ void _parseClassMembers(
         member,
         parsedDecalaration,
         visitedDeclarations,
-        toBeResolvedDeclarations,
+        dependencies,
       ),
     );
   }
@@ -261,7 +261,7 @@ void _parseClassMembers(
 void _parseEnumConstants(
   ast.EnumDeclaration declaration,
   Map<int, Declaration> visitedDeclarations,
-  Map<int, List<Declaration>> toBeResolvedDeclarations,
+  Map<int, List<Declaration>> dependencies,
   LineInfo lineInfo,
   String path,
   String content,
@@ -282,7 +282,7 @@ void _parseEnumConstants(
         constant,
         parsedDeclaration,
         visitedDeclarations,
-        toBeResolvedDeclarations,
+        dependencies,
       ),
     );
   }
@@ -291,7 +291,7 @@ void _parseEnumConstants(
 void _parseNamedCompilationUnitMember(
   ast.NamedCompilationUnitMember member,
   Map<int, Declaration> visitedDeclarations,
-  Map<int, List<Declaration>> toBeResolvedDeclarations,
+  Map<int, List<Declaration>> dependencies,
   LineInfo lineInfo,
   String path,
   String content,
@@ -311,7 +311,7 @@ void _parseNamedCompilationUnitMember(
       member,
       parsedDeclaration,
       visitedDeclarations,
-      toBeResolvedDeclarations,
+      dependencies,
     ),
   );
 }

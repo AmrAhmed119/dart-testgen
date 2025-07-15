@@ -5,26 +5,32 @@ import 'package:analyzer/dart/analysis/results.dart';
 import 'package:testgen/src/analyzer/declaration.dart';
 import 'package:testgen/src/analyzer/parser.dart';
 
-/// Resolves Dart files within the specified [packageRoot] and extracts their
-/// top-level declarations.
+/// Extracts all top-level [Declaration]s from Dart files at [path].
 ///
-/// This function creates an [AnalysisContextCollection] for the given package
-/// root, then iterates over a list of Dart file paths.
-/// For each file, it resolves the compilation unit and parses its declarations,
-/// collecting them into a list. The function returns a list of all discovered
-/// [Declaration]s.
+/// If [path] is a Dart file, only that file is analyzed. If [path] is 
+/// a directory, all Dart files within it (recursively) are analyzed.
+/// Each file is resolved and parsed, and all discovered declarations are
+/// returned. Dependencies between declarations are also resolved.
 ///
-/// Returns a [Future] that completes with a list of [Declaration] objects
-/// extracted from the resolved Dart files.
-Future<List<Declaration>> extractDeclarations(String packageRoot) async {
-  final collection = AnalysisContextCollection(includedPaths: [packageRoot]);
+/// Returns a [Future] that completes with a list of [Declaration] objects.
+Future<List<Declaration>> extractDeclarations(String path) async {
+  final collection = AnalysisContextCollection(includedPaths: [path]);
 
   final dartFiles = <String>[];
-  Directory(packageRoot).listSync(recursive: true).forEach((entity) {
-    if (entity is File && entity.path.endsWith('.dart')) {
-      dartFiles.add(entity.path);
-    }
-  });
+
+  final fileSystemEntity = FileSystemEntity.typeSync(path);
+  if (fileSystemEntity == FileSystemEntityType.file &&
+      path.endsWith('.dart')) {
+    dartFiles.add(path);
+  } else if (fileSystemEntity == FileSystemEntityType.directory) {
+    Directory(path).listSync(recursive: true).forEach((entity) {
+      if (entity is File && entity.path.endsWith('.dart')) {
+        dartFiles.add(entity.path);
+      }
+    });
+  } else {
+    throw ArgumentError('Path must be a .dart file or directory');
+  }
 
   // Map to hold visited declarations that have been processed
   final visitedDeclarations = <int, Declaration>{};

@@ -8,18 +8,18 @@ class DependencyVisitor extends RecursiveAstVisitor<void> {
     this.astNode,
     this.declaration,
     this.visitedDeclarations,
-    this.toBeResolvedDeclarations,
+    this.dependencies,
   );
 
   final ast.Declaration astNode;
   final Declaration declaration;
   final Map<int, Declaration> visitedDeclarations;
-  final Map<int, List<Declaration>> toBeResolvedDeclarations;
+  final Map<int, List<Declaration>> dependencies;
 
   void _addDependencyById(int? id) {
     if (id == null) return;
 
-    toBeResolvedDeclarations.putIfAbsent(id, () => []).add(declaration);
+    dependencies.putIfAbsent(id, () => []).add(declaration);
   }
 
   // Captures type references such as class names, type parameters.
@@ -59,7 +59,7 @@ class VariableDependencyVisitor extends DependencyVisitor {
     super.astNode,
     super.declaration,
     super.visitedDeclarations,
-    super.toBeResolvedDeclarations,
+    super.dependencies,
   );
 
   // According to the grammar:
@@ -91,7 +91,7 @@ class CompoundDependencyVisitor extends DependencyVisitor {
     super.astNode,
     super.declaration,
     super.visitedDeclarations,
-    super.toBeResolvedDeclarations,
+    super.dependencies,
   );
 
   void _visitExtendsClause(ast.ExtendsClause? extendsClause) {
