@@ -7,7 +7,7 @@ import 'package:testgen/src/analyzer/parser.dart';
 
 /// Extracts all top-level [Declaration]s from Dart files at [path].
 ///
-/// If [path] is a Dart file, only that file is analyzed. If [path] is 
+/// If [path] is a Dart file, only that file is analyzed. If [path] is
 /// a directory, all Dart files within it (recursively) are analyzed.
 /// Each file is resolved and parsed, and all discovered declarations are
 /// returned. Dependencies between declarations are also resolved.
@@ -19,8 +19,7 @@ Future<List<Declaration>> extractDeclarations(String path) async {
   final dartFiles = <String>[];
 
   final fileSystemEntity = FileSystemEntity.typeSync(path);
-  if (fileSystemEntity == FileSystemEntityType.file &&
-      path.endsWith('.dart')) {
+  if (fileSystemEntity == FileSystemEntityType.file && path.endsWith('.dart')) {
     dartFiles.add(path);
   } else if (fileSystemEntity == FileSystemEntityType.directory) {
     Directory(path).listSync(recursive: true).forEach((entity) {
