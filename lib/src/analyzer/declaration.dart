@@ -57,7 +57,8 @@ class Declaration {
     String color = 'lightblue';
 
     buffer.writeln(
-      '  $nodeId [label="$escapedName\\n($startLine:$endLine)", shape=$shape, fillcolor=$color, style=filled];',
+      '  $nodeId [label="$escapedName\\n($startLine:$endLine)", shape=$shape, '
+      'fillcolor=$color, style=filled];',
     );
 
     for (final dependency in dependsOn) {
