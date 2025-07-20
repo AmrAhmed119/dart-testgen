@@ -45,15 +45,20 @@ void main() {
 
   group('Test Class Members Declarations Dependencies', () {
     test('Test Constructor Dependencies', () {
-      expect(decls['Class2.named']!.dependsOn, hasLength(3));
+      expect(decls['Class2.named']!.dependsOn, hasLength(4));
       expect(
         decls['Class2.named']!.dependsOn,
-        containsAll([decls['Class2'], decls['_field3'], decls['method3']]),
+        containsAll([
+          decls['Class2'],
+          decls['_field3'],
+          decls['_field4'],
+          decls['method3'],
+        ]),
       );
     });
 
     test('Test Method Dependencies', () {
-      expect(decls['method4']!.dependsOn, hasLength(10));
+      expect(decls['method4']!.dependsOn, hasLength(11));
       expect(
         decls['method4']!.dependsOn,
         containsAll([
@@ -67,6 +72,7 @@ void main() {
           decls['value1'],
           decls['field2'],
           decls['field4'],
+          decls['field3'],
         ]),
       );
     });

@@ -1,6 +1,10 @@
 class Class1 {
   int field = 1;
 
+  set fieldSetter(int value) {
+    field = value;
+  }
+
   int method1() => 1;
 }
 
@@ -40,4 +44,12 @@ void func2(Class1 c1, Enum e) {
   print(var4(3));
   print(var5);
   print(var6);
+}
+
+int func3() {
+  Class1 c1 = Class1();
+  c1.field = 3;
+  c1.fieldSetter = 4;
+  var2 = 1;
+  return var3;
 }

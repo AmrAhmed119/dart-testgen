@@ -35,7 +35,6 @@ class DependencyVisitor extends RecursiveAstVisitor<void> {
   // - Property access: obj.property (captures 'property')
   // - Method calls: obj.method() (captures 'method')
   // - Getter access: obj.value (captures underlying variable if it's a property)
-  // - TODO: Setter access: currently has a problem with setters.
   //
   // This method is sufficient for most dependencies since SimpleIdentifier
   // tokens are used throughout the Dart grammar and will be  visited
@@ -51,6 +50,19 @@ class DependencyVisitor extends RecursiveAstVisitor<void> {
       _addDependencyById(element.variable3?.id);
     }
     super.visitSimpleIdentifier(node);
+  }
+
+  @override
+  void visitAssignmentExpression(ast.AssignmentExpression node) {
+    final element = node.writeElement2;
+    _addDependencyById(element?.id);
+
+    // Handle the case where the element is an implicit setter so we need to
+    // capture the underlying variable id.
+    if (element is SetterElement) {
+      _addDependencyById(element.variable3?.id);
+    }
+    super.visitAssignmentExpression(node);
   }
 }
 

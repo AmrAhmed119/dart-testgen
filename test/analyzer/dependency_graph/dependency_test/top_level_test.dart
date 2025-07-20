@@ -34,6 +34,8 @@ void main() {
         'var5',
         'ClassList',
         'var6',
+        'func3',
+        'fieldSetter',
       ],
     );
   });
@@ -59,6 +61,18 @@ void main() {
         ]),
       );
       expect(decls['method2']!.parent, decls['Extension']);
+
+      expect(decls['func3']!.dependsOn, hasLength(5));
+      expect(
+        decls['func3']!.dependsOn,
+        containsAll([
+          decls['Class1'],
+          decls['field'],
+          decls['fieldSetter'],
+          decls['var2'],
+          decls['var3'],
+        ]),
+      );
     });
 
     test('Test Variable Dependencies', () {
