@@ -5,28 +5,40 @@ import 'package:analyzer/dart/analysis/results.dart';
 import 'package:testgen/src/analyzer/declaration.dart';
 import 'package:testgen/src/analyzer/parser.dart';
 
-/// Resolves Dart files within the specified [packageRoot] and extracts their
-/// top-level declarations.
+/// Extracts all top-level [Declaration]s from Dart files at [path].
 ///
-/// This function creates an [AnalysisContextCollection] for the given package
-/// root, then iterates over a list of Dart file paths.
-/// For each file, it resolves the compilation unit and parses its declarations,
-/// collecting them into a list. The function returns a list of all discovered
-/// [Declaration]s.
+/// If [path] is a Dart file, only that file is analyzed. If [path] is
+/// a directory, all Dart files within it (recursively) are analyzed.
+/// Each file is resolved and parsed, and all discovered declarations are
+/// returned. Dependencies between declarations are also resolved.
 ///
-/// Returns a [Future] that completes with a list of [Declaration] objects
-/// extracted from the resolved Dart files.
-Future<List<Declaration>> extractDeclarations(String packageRoot) async {
-  final collection = AnalysisContextCollection(includedPaths: [packageRoot]);
+/// Returns a [Future] that completes with a list of [Declaration] objects.
+Future<List<Declaration>> extractDeclarations(String path) async {
+  final collection = AnalysisContextCollection(includedPaths: [path]);
 
   final dartFiles = <String>[];
-  Directory(packageRoot).listSync(recursive: true).forEach((entity) {
-    if (entity is File && entity.path.endsWith('.dart')) {
-      dartFiles.add(entity.path);
-    }
-  });
 
-  final visitedDeclarations = <Declaration>[];
+  final fileSystemEntity = FileSystemEntity.typeSync(path);
+  if (fileSystemEntity == FileSystemEntityType.file && path.endsWith('.dart')) {
+    dartFiles.add(path);
+  } else if (fileSystemEntity == FileSystemEntityType.directory) {
+    Directory(path).listSync(recursive: true).forEach((entity) {
+      if (entity is File && entity.path.endsWith('.dart')) {
+        dartFiles.add(entity.path);
+      }
+    });
+  } else {
+    throw ArgumentError('Path must be a .dart file or directory');
+  }
+
+  // Map to hold visited declarations that have been processed
+  final visitedDeclarations = <int, Declaration>{};
+
+  // This is used to handle cases where a declaration depends on another
+  // declaration that hasn't been visited yet.
+  // the value is a list of declarations that depend on the key which
+  // is a declaration id that has not been visited yet.
+  final dependencies = <int, List<Declaration>>{};
 
   for (final filePath in dartFiles) {
     final context = collection.contextFor(filePath);
@@ -35,11 +47,26 @@ Future<List<Declaration>> extractDeclarations(String packageRoot) async {
     final content = await File(filePath).readAsString();
 
     if (resolved is ResolvedUnitResult) {
-      visitedDeclarations.addAll(
-        parseCompilationUnit(resolved.unit, filePath, content),
+      parseCompilationUnit(
+        resolved.unit,
+        visitedDeclarations,
+        dependencies,
+        filePath,
+        content,
       );
     }
   }
 
-  return visitedDeclarations;
+  for (final MapEntry(key: id, value: declarations) in dependencies.entries) {
+    if (visitedDeclarations.containsKey(id)) {
+      for (final declaration in declarations) {
+        // Avoid adding self-dependency
+        if (declaration.id != id) {
+          declaration.addDependency(visitedDeclarations[id]!);
+        }
+      }
+    }
+  }
+
+  return visitedDeclarations.values.toList();
 }

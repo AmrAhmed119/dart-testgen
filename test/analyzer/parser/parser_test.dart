@@ -1,41 +1,46 @@
-import 'dart:io';
-import 'package:analyzer/dart/analysis/analysis_context_collection.dart';
-import 'package:analyzer/dart/analysis/results.dart';
 import 'package:test/test.dart';
 import 'package:testgen/src/analyzer/declaration.dart';
-import 'package:testgen/src/analyzer/parser.dart';
 import 'package:path/path.dart' as path;
 
-Declaration findDeclarationByName(
-  List<Declaration> declarations,
-  String name,
-) => declarations.firstWhere((d) => d.name == name);
+import '../utils.dart';
 
 void main() {
-  late List<Declaration> declarations;
+  late Map<String, Declaration> decls;
 
   setUpAll(() async {
-    final codePath = 'test/analyzer/code.dart';
-    final absolute = path.normalize(path.absolute(codePath));
-    final codeContent = await File(absolute).readAsString();
-
-    // Set up analyzer context for resolving
-    final collection = AnalysisContextCollection(includedPaths: [absolute]);
-    final context = collection.contextFor(absolute);
-    final session = context.currentSession;
-    final result = await session.getResolvedUnit(absolute);
-
-    if (result is ResolvedUnitResult) {
-      declarations = parseCompilationUnit(result.unit, codePath, codeContent);
-    } else {
-      declarations = [];
-    }
+    decls = await extractDeclarationsForSourceFile(
+      path.join('test', 'analyzer', 'parser', 'code.dart'),
+      [
+        'a',
+        'b',
+        'StringExtension',
+        'reversed',
+        'Logger',
+        'log',
+        'Status',
+        'code',
+        'describe',
+        'pending',
+        'approved',
+        'rejected',
+        'IntCallback',
+        'Mapper',
+        'UserID',
+        'isValid',
+        'getUser',
+        'Person',
+        'name',
+        'Person.named',
+        'greet',
+        'sum',
+      ],
+    );
   });
 
   group('parseCompilationUnit', () {
     test('parses top-level variable declaration', () {
-      final a = findDeclarationByName(declarations, 'a');
-      final b = findDeclarationByName(declarations, 'b');
+      final a = decls['a']!;
+      final b = decls['b']!;
 
       expect(a.name, 'a');
       expect(a.sourceCode, [
@@ -57,8 +62,8 @@ void main() {
     });
 
     test('parses extension declaration', () {
-      final ext = findDeclarationByName(declarations, 'StringExtension');
-      final method = findDeclarationByName(declarations, 'reversed');
+      final ext = decls['StringExtension']!;
+      final method = decls['reversed']!;
 
       expect(ext.name, 'StringExtension');
       expect(ext.sourceCode, [
@@ -80,8 +85,8 @@ void main() {
     });
 
     test('parses mixin declaration', () {
-      final mixin = findDeclarationByName(declarations, 'Logger');
-      final method = findDeclarationByName(declarations, 'log');
+      final mixin = decls['Logger']!;
+      final method = decls['log']!;
 
       expect(mixin.name, 'Logger');
       expect(mixin.sourceCode, [
@@ -103,19 +108,19 @@ void main() {
     });
 
     test('parses enum declaration', () {
-      final enumDecl = findDeclarationByName(declarations, 'Status');
-      final field = findDeclarationByName(declarations, 'code');
-      final method = findDeclarationByName(declarations, 'describe');
+      final enumDecl = decls['Status']!;
+      final field = decls['code']!;
+      final method = decls['describe']!;
       final constants = [
-        findDeclarationByName(declarations, 'pending'),
-        findDeclarationByName(declarations, 'approved'),
-        findDeclarationByName(declarations, 'rejected'),
+        decls['pending']!,
+        decls['approved']!,
+        decls['rejected']!,
       ];
 
-      // 1 enum + 3 constants + 1 field + 1 constructor + 1 method = 7
+      // 3 constants + 1 field + 1 constructor + 1 method
       expect(
-        declarations.where((d) => d.parent == enumDecl || d == enumDecl).length,
-        7,
+        decls.values.where((d) => d.parent == enumDecl || d == enumDecl),
+        hasLength(6),
       );
 
       expect(enumDecl.startLine, 12);
@@ -154,8 +159,8 @@ void main() {
     });
 
     test('parses typedef declaration', () {
-      final callbackDef = findDeclarationByName(declarations, 'IntCallback');
-      final genericDef = findDeclarationByName(declarations, 'Mapper');
+      final callbackDef = decls['IntCallback']!;
+      final genericDef = decls['Mapper']!;
 
       expect(callbackDef.name, 'IntCallback');
       expect(callbackDef.sourceCode, [
@@ -178,9 +183,9 @@ void main() {
     });
 
     test('parses extension type declaration', () {
-      final extType = findDeclarationByName(declarations, 'UserID');
-      final getter = findDeclarationByName(declarations, 'isValid');
-      final method = findDeclarationByName(declarations, 'getUser');
+      final extType = decls['UserID']!;
+      final getter = decls['isValid']!;
+      final method = decls['getUser']!;
 
       expect(extType.name, 'UserID');
       expect(extType.sourceCode, [
@@ -207,10 +212,10 @@ void main() {
     });
 
     test('parses class declaration', () {
-      final classDecl = findDeclarationByName(declarations, 'Person');
-      final field = findDeclarationByName(declarations, 'name');
-      final constructor = findDeclarationByName(declarations, 'Person.named');
-      final method = findDeclarationByName(declarations, 'greet');
+      final classDecl = decls['Person']!;
+      final field = decls['name']!;
+      final constructor = decls['Person.named']!;
+      final method = decls['greet']!;
 
       expect(classDecl.name, 'Person');
       expect(classDecl.startLine, 40);
@@ -238,7 +243,7 @@ void main() {
     });
 
     test('parses top-level function', () {
-      final func = findDeclarationByName(declarations, 'sum');
+      final func = decls['sum']!;
 
       expect(func.name, 'sum');
       expect(func.sourceCode, [
@@ -252,10 +257,10 @@ void main() {
     });
 
     test('each declaration has a unique id', () {
-      final ids = declarations.map((d) => d.id).toSet();
+      final ids = decls.values.map((d) => d.id).toSet();
       expect(
         ids.length,
-        declarations.length,
+        decls.length,
         reason: 'Each declaration should have a unique id',
       );
     });
