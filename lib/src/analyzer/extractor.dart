@@ -90,11 +90,14 @@ List<Declaration> extractUntestedDeclarations(
       in coverageResults.entries) {
     final fileDeclarations = declarations[filePath] ?? [];
     for (final declaration in fileDeclarations) {
+      if (declaration.isCompound) continue;
       int start = declaration.startLine;
       int end = declaration.endLine;
       for (final line in uncoveredLines) {
         if (line >= start && line <= end) {
           untestedDeclarations.add(declaration);
+          declaration.addUncoveredLine(line);
+          break;
         }
       }
     }

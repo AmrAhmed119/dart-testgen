@@ -21,6 +21,7 @@ class Declaration {
     required this.endLine,
     required this.path,
     this.parent,
+    this.isCompound = false,
   });
 
   final int id;
@@ -41,8 +42,22 @@ class Declaration {
 
   final Set<Declaration> dependsOn = {};
 
+  final bool isCompound;
+
+  final _uncoveredLines = [];
+
   void addDependency(Declaration declaration) {
     dependsOn.add(declaration);
+  }
+
+  void addUncoveredLine(int line) {
+    if (line < startLine || line > endLine) {
+      throw ArgumentError(
+        'Line $line is out of bounds for declaration $name '
+        '($startLine:$endLine)',
+      );
+    }
+    _uncoveredLines.add(line - startLine);
   }
 
   /// Returns a Graphviz DOT format representation of this declaration.
