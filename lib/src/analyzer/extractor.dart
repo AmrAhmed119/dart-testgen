@@ -1,9 +1,11 @@
 import 'dart:io';
+import 'package:path/path.dart' as p;
 
 import 'package:analyzer/dart/analysis/analysis_context_collection.dart';
 import 'package:analyzer/dart/analysis/results.dart';
 import 'package:testgen/src/analyzer/declaration.dart';
 import 'package:testgen/src/analyzer/parser.dart';
+import 'package:testgen/src/coverage/coverage_collection.dart';
 
 /// Extracts all top-level [Declaration]s from Dart files at [path].
 ///
@@ -13,7 +15,10 @@ import 'package:testgen/src/analyzer/parser.dart';
 /// returned. Dependencies between declarations are also resolved.
 ///
 /// Returns a [Future] that completes with a list of [Declaration] objects.
-Future<List<Declaration>> extractDeclarations(String path) async {
+Future<List<Declaration>> extractDeclarations(
+  String path,
+  String packageName,
+) async {
   final collection = AnalysisContextCollection(includedPaths: [path]);
 
   final dartFiles = <String>[];
@@ -22,7 +27,7 @@ Future<List<Declaration>> extractDeclarations(String path) async {
   if (fileSystemEntity == FileSystemEntityType.file && path.endsWith('.dart')) {
     dartFiles.add(path);
   } else if (fileSystemEntity == FileSystemEntityType.directory) {
-    Directory(path).listSync(recursive: true).forEach((entity) {
+    Directory(p.join(path, 'lib')).listSync(recursive: true).forEach((entity) {
       if (entity is File && entity.path.endsWith('.dart')) {
         dartFiles.add(entity.path);
       }
@@ -51,7 +56,11 @@ Future<List<Declaration>> extractDeclarations(String path) async {
         resolved.unit,
         visitedDeclarations,
         dependencies,
-        filePath,
+        toPackageImportPath(
+          absoluteFilePath: filePath,
+          projectRoot: path,
+          packageName: packageName,
+        ),
         content,
       );
     }
@@ -69,4 +78,44 @@ Future<List<Declaration>> extractDeclarations(String path) async {
   }
 
   return visitedDeclarations.values.toList();
+}
+
+List<Declaration> extractUntestedDeclarations(
+  Map<String, List<Declaration>> declarations,
+  CoverageData coverageResults,
+) {
+  final untestedDeclarations = <Declaration>{};
+
+  for (final MapEntry(key: filePath, value: uncoveredLines)
+      in coverageResults.entries) {
+    final fileDeclarations = declarations[filePath] ?? [];
+    for (final declaration in fileDeclarations) {
+      int start = declaration.startLine;
+      int end = declaration.endLine;
+      for (final line in uncoveredLines) {
+        if (line >= start && line <= end) {
+          untestedDeclarations.add(declaration);
+        }
+      }
+    }
+  }
+
+  return untestedDeclarations.toList();
+}
+
+/// Converts an absolute file path into a package import path
+String toPackageImportPath({
+  required String absoluteFilePath,
+  required String projectRoot,
+  required String packageName,
+}) {
+  final libPath = p.join(projectRoot, 'lib');
+  if (!p.isWithin(libPath, absoluteFilePath)) {
+    throw ArgumentError(
+      'File is not inside the lib directory: $absoluteFilePath',
+    );
+  }
+
+  final relativePath = p.relative(absoluteFilePath, from: libPath);
+  return 'package:$packageName/$relativePath';
 }

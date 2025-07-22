@@ -5,7 +5,7 @@ import 'package:coverage/coverage.dart';
 import 'package:stack_trace/stack_trace.dart';
 import 'package:testgen/src/coverage/util.dart';
 
-typedef CoverageData = Map<String, dynamic>;
+typedef CoverageData = Map<String, List<int>>;
 
 final _allProcesses = <Process>[];
 bool _isSignalsWatched = false;
@@ -119,7 +119,7 @@ Future<CoverageData> runTestsAndCollectCoverage(
 
   final serviceUri = await serviceUriCompleter.future;
 
-  CoverageData coverageResults = await Chain.capture(
+  final coverageResults = await Chain.capture(
     () async {
       return await collect(
         serviceUri,
@@ -142,5 +142,32 @@ Future<CoverageData> runTestsAndCollectCoverage(
 
   await testProcess;
 
-  return coverageResults;
+  return formatCoverage(coverageResults);
+}
+
+/// Formats raw coverage results into a [CoverageData] structure.
+///
+/// [CoverageData] is a `Map<String, List<int>>` where:
+///   - The key is the relative path of a Dart source file.
+///   - The value is a list of line numbers in that file which were not hit
+///     by any test case (i.e., lines that require additional testing).
+CoverageData formatCoverage(Map<String, dynamic> coverageResults) {
+  final CoverageData formattedData = {};
+  final List<Map<String, dynamic>> coverage = coverageResults['coverage'];
+
+  for (final {'source': String source, 'hits': List<int> hits} in coverage) {
+    final zeroHits = _extractZeroHitLines(hits);
+    if (zeroHits.isNotEmpty) {
+      formattedData[source] = zeroHits;
+    }
+  }
+
+  return formattedData;
+}
+
+List<int> _extractZeroHitLines(List<int> hits) {
+  return [
+    for (var i = 0; i < hits.length; i += 2)
+      if (hits[i + 1] == 0) hits[i],
+  ];
 }

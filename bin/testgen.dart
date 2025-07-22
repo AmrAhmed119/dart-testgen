@@ -2,6 +2,7 @@ import 'dart:io';
 
 import 'package:args/args.dart';
 import 'package:path/path.dart' as path;
+import 'package:testgen/src/analyzer/declaration.dart';
 import 'package:testgen/src/analyzer/extractor.dart';
 import 'package:testgen/src/coverage/coverage_collection.dart';
 import 'package:testgen/src/coverage/util.dart';
@@ -112,12 +113,32 @@ ${parser.usage}
 
 Future<void> main(List<String> arguments) async {
   final flags = await parseArgs(arguments);
-  await runTestsAndCollectCoverage(
+  final coverage = await runTestsAndCollectCoverage(
     flags.package,
     vmServicePort: flags.vmServicePort,
     branchCoverage: flags.branchCoverage,
     functionCoverage: flags.functionCoverage,
     scopeOutput: flags.scopeOutput,
   );
-  await extractDeclarations(flags.package);
+
+  final declarations = await extractDeclarations(
+    flags.package,
+    flags.scopeOutput.first,
+  );
+
+  final Map<String, List<Declaration>> declarationsByFile = {};
+  for (final declaration in declarations) {
+    declarationsByFile.putIfAbsent(declaration.path, () => []).add(declaration);
+  }
+
+  final unTestedDeclarations = extractUntestedDeclarations(
+    declarationsByFile,
+    coverage,
+  );
+
+  for (final declaration in unTestedDeclarations) {
+    print('Untested declaration: ${declaration.name} at ${declaration.path}:');
+  }
+
+  exit(0);
 }
