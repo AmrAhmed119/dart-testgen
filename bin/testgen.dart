@@ -102,6 +102,13 @@ ${parser.usage}
           ? getAllWorkspaceNames(packageDir)
           : results['scope-output'] as List<String>;
 
+  if (scopes.length != 1) {
+    fail(
+      'Workspace support is not implemented yet. '
+      'Please specify a single package scope.',
+    );
+  }
+
   return Flags(
     package: packageDir,
     vmServicePort: results['port'],
@@ -120,6 +127,7 @@ Future<void> main(List<String> arguments) async {
     functionCoverage: flags.functionCoverage,
     scopeOutput: flags.scopeOutput,
   );
+  final coverageByFile = formatCoverage(coverage);
 
   final declarations = await extractDeclarations(
     flags.package,
@@ -131,13 +139,16 @@ Future<void> main(List<String> arguments) async {
     declarationsByFile.putIfAbsent(declaration.path, () => []).add(declaration);
   }
 
-  final unTestedDeclarations = extractUntestedDeclarations(
+  final untestedDeclarations = extractUntestedDeclarations(
     declarationsByFile,
-    coverage,
+    coverageByFile,
   );
 
-  for (final declaration in unTestedDeclarations) {
-    print('Untested declaration: ${declaration.name} at ${declaration.path}:');
+  for (final (decl, lines) in untestedDeclarations) {
+    print(
+      'Untested declaration: ${decl.name} in ${decl.path} '
+      'Uncovered lines: ${lines.join(', ')}',
+    );
   }
 
   exit(0);

@@ -41,20 +41,8 @@ class Declaration {
 
   final Set<Declaration> dependsOn = {};
 
-  final _uncoveredLines = [];
-
   void addDependency(Declaration declaration) {
     dependsOn.add(declaration);
-  }
-
-  void addUncoveredLine(int line) {
-    if (line < startLine || line > endLine) {
-      throw ArgumentError(
-        'Line $line is out of bounds for declaration $name '
-        '($startLine:$endLine)',
-      );
-    }
-    _uncoveredLines.add(line - startLine);
   }
 
   /// Returns a Graphviz DOT format representation of this declaration.

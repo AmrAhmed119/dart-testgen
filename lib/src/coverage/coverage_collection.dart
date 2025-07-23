@@ -5,7 +5,7 @@ import 'package:coverage/coverage.dart';
 import 'package:stack_trace/stack_trace.dart';
 import 'package:testgen/src/coverage/util.dart';
 
-typedef CoverageData = Map<String, List<int>>;
+typedef CoverageData = List<(String, List<int>)>;
 
 final _allProcesses = <Process>[];
 bool _isSignalsWatched = false;
@@ -73,7 +73,7 @@ void _watchExitSignal(ProcessSignal signal) {
 /// any of the provided paths.
 ///
 /// Returns a [CoverageData] map containing the merged coverage information for all isolates.
-Future<CoverageData> runTestsAndCollectCoverage(
+Future<Map<String, dynamic>> runTestsAndCollectCoverage(
   String packageDir, {
   String vmServicePort = '0',
   bool branchCoverage = false,
@@ -142,23 +142,23 @@ Future<CoverageData> runTestsAndCollectCoverage(
 
   await testProcess;
 
-  return formatCoverage(coverageResults);
+  return coverageResults;
 }
 
 /// Formats raw coverage results into a [CoverageData] structure.
 ///
-/// [CoverageData] is a `Map<String, List<int>>` where:
-///   - The key is the relative path of a Dart source file.
-///   - The value is a list of line numbers in that file which were not hit
-///     by any test case (i.e., lines that require additional testing).
+/// [CoverageData] is a `List<(String, List<int>)>` where:
+///   - The first element is the package path of a Dart source file.
+///   - The second element is a list of line numbers in that file which were
+///     not hit by any test case (i.e., lines that require additional testing).
 CoverageData formatCoverage(Map<String, dynamic> coverageResults) {
-  final CoverageData formattedData = {};
+  final CoverageData formattedData = [];
   final List<Map<String, dynamic>> coverage = coverageResults['coverage'];
 
   for (final {'source': String source, 'hits': List<int> hits} in coverage) {
     final zeroHits = _extractZeroHitLines(hits);
     if (zeroHits.isNotEmpty) {
-      formattedData[source] = zeroHits;
+      formattedData.add((source, zeroHits));
     }
   }
 

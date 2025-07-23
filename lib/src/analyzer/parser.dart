@@ -156,6 +156,8 @@ void _parseCompoundDeclaration(
     _ => ('', []),
   };
 
+  // For compound declarations store both the content, the start, and end line
+  // numbers corresponding to the definition (signature) of the compound
   final classOffset = declaration.firstTokenAfterCommentAndMetadata.offset;
   final signatureEnd = content.indexOf(RegExp(r'[{;]'), classOffset) + 1;
 
@@ -167,17 +169,6 @@ void _parseCompoundDeclaration(
     name: name,
     groupEnd: signatureEnd,
   );
-
-  // final parent = Declaration(
-  //   declaration.declaredFragment!.element.id,
-  //   name: name ?? '',
-  //   sourceCode: content
-  //       .substring(declaration.offset, signatureEnd + 1)
-  //       .split('\n'),
-  //   startLine: lineInfo.getLocation(declaration.offset).lineNumber,
-  //   endLine: lineInfo.getLocation(signatureEnd).lineNumber,
-  //   path: path,
-  // );
   visitedDeclarations[parent.id] = parent;
   declaration.accept(
     CompoundDependencyVisitor(

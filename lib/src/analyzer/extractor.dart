@@ -60,7 +60,7 @@ Future<List<Declaration>> extractDeclarations(
         dependencies,
         _toPackageImportPath(
           absoluteFilePath: filePath,
-          projectRoot: path,
+          packageRoot: path,
           packageName: packageName,
         ),
         content,
@@ -82,39 +82,38 @@ Future<List<Declaration>> extractDeclarations(
   return visitedDeclarations.values.toList();
 }
 
-List<Declaration> extractUntestedDeclarations(
+List<(Declaration, List<int>)> extractUntestedDeclarations(
   Map<String, List<Declaration>> declarations,
   CoverageData coverageResults,
 ) {
-  final untestedDeclarations = <Declaration>{};
+  final untestedDeclarations = <(Declaration, List<int>)>[];
 
-  for (final MapEntry(key: filePath, value: uncoveredLines)
-      in coverageResults.entries) {
+  for (final (filePath, uncoveredLines) in coverageResults) {
     final fileDeclarations = declarations[filePath] ?? [];
     for (final declaration in fileDeclarations) {
-      int start = declaration.startLine;
-      int end = declaration.endLine;
+      final lines = <int>[];
       for (final line in uncoveredLines) {
-        if (line >= start && line <= end) {
-          untestedDeclarations.add(declaration);
-          declaration.addUncoveredLine(line);
-          break;
+        if (line >= declaration.startLine && line <= declaration.endLine) {
+          lines.add(line - declaration.startLine);
         }
       }
+      if (lines.isNotEmpty) {
+        untestedDeclarations.add((declaration, lines));
+      } 
     }
   }
 
-  return untestedDeclarations.toList();
+  return untestedDeclarations;
 }
 
 /// Converts an absolute file path into a package import path
 String _toPackageImportPath({
   required String absoluteFilePath,
-  required String projectRoot,
+  required String packageRoot,
   required String packageName,
 }) {
-  final libPath = p.join(projectRoot, 'lib');
-  if (!p.isWithin(libPath, absoluteFilePath) && absoluteFilePath != projectRoot) {
+  final libPath = p.join(packageRoot, 'lib');
+  if (!p.isWithin(libPath, absoluteFilePath) && absoluteFilePath != packageRoot) {
     throw ArgumentError(
       'File is not inside the lib directory: $absoluteFilePath',
     );
