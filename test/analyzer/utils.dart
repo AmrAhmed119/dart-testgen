@@ -12,7 +12,7 @@ Future<Map<String, Declaration>> extractDeclarationsForSourceFile(
   List<String> names,
 ) async {
   final absolute = path.normalize(path.absolute(filePath));
-  final declarations = await extractDeclarations(absolute);
+  final declarations = await extractDeclarations(absolute, 'testgen');
   return {
     for (final name in names) name: findDeclarationByName(declarations, name),
   };

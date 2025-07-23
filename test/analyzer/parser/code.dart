@@ -30,6 +30,7 @@ typedef IntCallback = int Function(int);
 /// generic typedef
 typedef Mapper<T> = T Function(T value);
 
+/// Test comment
 extension type UserID(int id) {
   bool get isValid => id > 0;
 
@@ -39,7 +40,9 @@ extension type UserID(int id) {
 
 /// Class Definition for [Person]
 /// Multi line comment
-class Person {
+class Person
+extends Another
+with Logger {
   /// The name of the person
   String name;
 
@@ -51,6 +54,8 @@ class Person {
     print('Hello $name');
   }
 }
+
+class Another {}
 
 /// comment above annotation
 @Deprecated('Use sum instead')

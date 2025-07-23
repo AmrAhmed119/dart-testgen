@@ -21,7 +21,6 @@ class Declaration {
     required this.endLine,
     required this.path,
     this.parent,
-    this.isCompound = false,
   });
 
   final int id;
@@ -41,8 +40,6 @@ class Declaration {
   final Declaration? parent;
 
   final Set<Declaration> dependsOn = {};
-
-  final bool isCompound;
 
   final _uncoveredLines = [];
 

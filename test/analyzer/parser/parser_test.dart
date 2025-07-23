@@ -29,6 +29,7 @@ void main() {
         'isValid',
         'getUser',
         'Person',
+        'Another',
         'name',
         'Person.named',
         'greet',
@@ -66,13 +67,9 @@ void main() {
       final method = decls['reversed']!;
 
       expect(ext.name, 'StringExtension');
-      expect(ext.sourceCode, [
-        'extension StringExtension on String {',
-        "  String reversed() => split('').reversed.join();",
-        '}',
-      ]);
+      expect(ext.sourceCode, ['extension StringExtension on String {']);
       expect(ext.startLine, 4);
-      expect(ext.endLine, 6);
+      expect(ext.endLine, 4);
       expect(ext.parent, null);
 
       expect(method.name, 'reversed');
@@ -91,11 +88,9 @@ void main() {
       expect(mixin.name, 'Logger');
       expect(mixin.sourceCode, [
         'mixin Logger {',
-        "  void log(String message) => print('Log: new Log');",
-        '}',
       ]);
       expect(mixin.startLine, 8);
-      expect(mixin.endLine, 10);
+      expect(mixin.endLine, 8);
       expect(mixin.parent, null);
 
       expect(method.name, 'log');
@@ -124,7 +119,7 @@ void main() {
       );
 
       expect(enumDecl.startLine, 12);
-      expect(enumDecl.endLine, 24);
+      expect(enumDecl.endLine, 12);
 
       expect(constants[0].name, 'pending');
       expect(constants[0].startLine, 13);
@@ -189,25 +184,21 @@ void main() {
 
       expect(extType.name, 'UserID');
       expect(extType.sourceCode, [
+        '/// Test comment',
         'extension type UserID(int id) {',
-        '  bool get isValid => id > 0;',
-        '',
-        '  /// get user id in a formatted string',
-        "  String getUser() => 'UserID(\$id)';",
-        '}',
       ]);
       expect(extType.startLine, 33);
-      expect(extType.endLine, 38);
+      expect(extType.endLine, 34);
       expect(extType.parent, null);
 
       expect(getter.name, 'isValid');
-      expect(getter.startLine, 34);
-      expect(getter.endLine, 34);
+      expect(getter.startLine, 35);
+      expect(getter.endLine, 35);
       expect(getter.parent, extType);
 
       expect(method.name, 'getUser');
-      expect(method.startLine, 36);
-      expect(method.endLine, 37);
+      expect(method.startLine, 37);
+      expect(method.endLine, 38);
       expect(method.parent, extType);
     });
 
@@ -218,13 +209,20 @@ void main() {
       final method = decls['greet']!;
 
       expect(classDecl.name, 'Person');
-      expect(classDecl.startLine, 40);
-      expect(classDecl.endLine, 53);
+      expect(classDecl.sourceCode, [
+        '/// Class Definition for [Person]',
+        '/// Multi line comment',
+        'class Person',
+        'extends Another',
+        'with Logger {',
+      ]);
+      expect(classDecl.startLine, 41);
+      expect(classDecl.endLine, 45);
       expect(classDecl.parent, null);
 
       expect(field.name, 'name');
-      expect(field.startLine, 43);
-      expect(field.endLine, 44);
+      expect(field.startLine, 46);
+      expect(field.endLine, 47);
       expect(field.parent, classDecl);
 
       expect(constructor.name, 'Person.named');
@@ -232,13 +230,13 @@ void main() {
         '/// Constructor for Person',
         '  Person.named(this.name);',
       ]);
-      expect(constructor.startLine, 46);
-      expect(constructor.endLine, 47);
+      expect(constructor.startLine, 49);
+      expect(constructor.endLine, 50);
       expect(constructor.parent, classDecl);
 
       expect(method.name, 'greet');
-      expect(method.startLine, 49);
-      expect(method.endLine, 52);
+      expect(method.startLine, 52);
+      expect(method.endLine, 55);
       expect(method.parent, classDecl);
     });
 
@@ -251,8 +249,8 @@ void main() {
         "@Deprecated('Use sum instead')",
         'int sum(int x, int y) => x + y;',
       ]);
-      expect(func.startLine, 55);
-      expect(func.endLine, 57);
+      expect(func.startLine, 60);
+      expect(func.endLine, 62);
       expect(func.parent, null);
     });
 

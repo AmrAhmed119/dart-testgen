@@ -61,7 +61,6 @@ Declaration _parseDeclaration(
   int? groupOffset,
   int? groupEnd,
   Declaration? parent,
-  bool isCompound = false,
 }) {
   // In fully resolved, valid Dart code, every declaration node is expected
   // to contain a declaredFragment representing its metadata.
@@ -91,7 +90,6 @@ Declaration _parseDeclaration(
     endLine: lineInfo.getLocation(groupEnd ?? declaration.end).lineNumber,
     path: path,
     parent: parent,
-    isCompound: isCompound,
   );
 }
 
@@ -158,14 +156,28 @@ void _parseCompoundDeclaration(
     _ => ('', []),
   };
 
+  final classOffset = declaration.firstTokenAfterCommentAndMetadata.offset;
+  final signatureEnd = content.indexOf(RegExp(r'[{;]'), classOffset) + 1;
+
   final parent = _parseDeclaration(
     declaration,
     lineInfo,
     path,
     content,
     name: name,
-    isCompound: true,
+    groupEnd: signatureEnd,
   );
+
+  // final parent = Declaration(
+  //   declaration.declaredFragment!.element.id,
+  //   name: name ?? '',
+  //   sourceCode: content
+  //       .substring(declaration.offset, signatureEnd + 1)
+  //       .split('\n'),
+  //   startLine: lineInfo.getLocation(declaration.offset).lineNumber,
+  //   endLine: lineInfo.getLocation(signatureEnd).lineNumber,
+  //   path: path,
+  // );
   visitedDeclarations[parent.id] = parent;
   declaration.accept(
     CompoundDependencyVisitor(
