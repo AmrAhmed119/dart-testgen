@@ -40,9 +40,7 @@ extension type UserID(int id) {
 
 /// Class Definition for [Person]
 /// Multi line comment
-class Person
-extends Another
-with Logger {
+class Person extends Another with Logger {
   /// The name of the person
   String name;
 

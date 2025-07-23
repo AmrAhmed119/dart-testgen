@@ -86,9 +86,7 @@ void main() {
       final method = decls['log']!;
 
       expect(mixin.name, 'Logger');
-      expect(mixin.sourceCode, [
-        'mixin Logger {',
-      ]);
+      expect(mixin.sourceCode, ['mixin Logger {']);
       expect(mixin.startLine, 8);
       expect(mixin.endLine, 8);
       expect(mixin.parent, null);
@@ -212,17 +210,15 @@ void main() {
       expect(classDecl.sourceCode, [
         '/// Class Definition for [Person]',
         '/// Multi line comment',
-        'class Person',
-        'extends Another',
-        'with Logger {',
+        'class Person extends Another with Logger {',
       ]);
       expect(classDecl.startLine, 41);
-      expect(classDecl.endLine, 45);
+      expect(classDecl.endLine, 43);
       expect(classDecl.parent, null);
 
       expect(field.name, 'name');
-      expect(field.startLine, 46);
-      expect(field.endLine, 47);
+      expect(field.startLine, 44);
+      expect(field.endLine, 45);
       expect(field.parent, classDecl);
 
       expect(constructor.name, 'Person.named');
@@ -230,13 +226,13 @@ void main() {
         '/// Constructor for Person',
         '  Person.named(this.name);',
       ]);
-      expect(constructor.startLine, 49);
-      expect(constructor.endLine, 50);
+      expect(constructor.startLine, 47);
+      expect(constructor.endLine, 48);
       expect(constructor.parent, classDecl);
 
       expect(method.name, 'greet');
-      expect(method.startLine, 52);
-      expect(method.endLine, 55);
+      expect(method.startLine, 50);
+      expect(method.endLine, 53);
       expect(method.parent, classDecl);
     });
 
@@ -249,8 +245,8 @@ void main() {
         "@Deprecated('Use sum instead')",
         'int sum(int x, int y) => x + y;',
       ]);
-      expect(func.startLine, 60);
-      expect(func.endLine, 62);
+      expect(func.startLine, 58);
+      expect(func.endLine, 60);
       expect(func.parent, null);
     });
 

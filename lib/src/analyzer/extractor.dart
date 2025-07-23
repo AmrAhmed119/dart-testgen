@@ -13,7 +13,7 @@ import 'package:testgen/src/coverage/coverage_collection.dart';
 /// a directory, all Dart files within it (recursively) are analyzed.
 /// Each file is resolved and parsed, and all discovered declarations are
 /// returned. Dependencies between declarations are also resolved.
-/// 
+///
 /// [packageName] is used to generate package import paths for each file,
 ///
 /// Returns a [Future] that completes with a list of [Declaration] objects.
@@ -99,7 +99,7 @@ List<(Declaration, List<int>)> extractUntestedDeclarations(
       }
       if (lines.isNotEmpty) {
         untestedDeclarations.add((declaration, lines));
-      } 
+      }
     }
   }
 
@@ -113,7 +113,8 @@ String _toPackageImportPath({
   required String packageName,
 }) {
   final libPath = p.join(packageRoot, 'lib');
-  if (!p.isWithin(libPath, absoluteFilePath) && absoluteFilePath != packageRoot) {
+  if (!p.isWithin(libPath, absoluteFilePath) &&
+      absoluteFilePath != packageRoot) {
     throw ArgumentError(
       'File is not inside the lib directory: $absoluteFilePath',
     );

@@ -156,7 +156,7 @@ void _parseCompoundDeclaration(
     _ => ('', []),
   };
 
-  // For compound declarations store both the content, the start, and end line
+  // For compound declarations store the content, the start, and end line
   // numbers corresponding to the definition (signature) of the compound
   final classOffset = declaration.firstTokenAfterCommentAndMetadata.offset;
   final signatureEnd = content.indexOf(RegExp(r'[{;]'), classOffset) + 1;
