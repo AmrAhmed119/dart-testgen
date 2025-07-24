@@ -106,6 +106,7 @@ List<(Declaration, List<int>)> extractUntestedDeclarations(
   return untestedDeclarations;
 }
 
+/// TODO(https://github.com/AmrAhmed119/dart-testgen/issues/12): use package_config
 /// Converts an absolute file path into a package import path
 String _toPackageImportPath({
   required String absoluteFilePath,
