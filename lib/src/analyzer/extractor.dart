@@ -1,9 +1,11 @@
 import 'dart:io';
+import 'package:path/path.dart' as p;
 
 import 'package:analyzer/dart/analysis/analysis_context_collection.dart';
 import 'package:analyzer/dart/analysis/results.dart';
 import 'package:testgen/src/analyzer/declaration.dart';
 import 'package:testgen/src/analyzer/parser.dart';
+import 'package:testgen/src/coverage/coverage_collection.dart';
 
 /// Extracts all top-level [Declaration]s from Dart files at [path].
 ///
@@ -12,8 +14,13 @@ import 'package:testgen/src/analyzer/parser.dart';
 /// Each file is resolved and parsed, and all discovered declarations are
 /// returned. Dependencies between declarations are also resolved.
 ///
+/// [packageName] is used to generate package import paths for each file,
+///
 /// Returns a [Future] that completes with a list of [Declaration] objects.
-Future<List<Declaration>> extractDeclarations(String path) async {
+Future<List<Declaration>> extractDeclarations(
+  String path,
+  String packageName,
+) async {
   final collection = AnalysisContextCollection(includedPaths: [path]);
 
   final dartFiles = <String>[];
@@ -22,7 +29,7 @@ Future<List<Declaration>> extractDeclarations(String path) async {
   if (fileSystemEntity == FileSystemEntityType.file && path.endsWith('.dart')) {
     dartFiles.add(path);
   } else if (fileSystemEntity == FileSystemEntityType.directory) {
-    Directory(path).listSync(recursive: true).forEach((entity) {
+    Directory(p.join(path, 'lib')).listSync(recursive: true).forEach((entity) {
       if (entity is File && entity.path.endsWith('.dart')) {
         dartFiles.add(entity.path);
       }
@@ -51,7 +58,11 @@ Future<List<Declaration>> extractDeclarations(String path) async {
         resolved.unit,
         visitedDeclarations,
         dependencies,
-        filePath,
+        _toPackageImportPath(
+          absoluteFilePath: filePath,
+          packageRoot: path,
+          packageName: packageName,
+        ),
         content,
       );
     }
@@ -69,4 +80,47 @@ Future<List<Declaration>> extractDeclarations(String path) async {
   }
 
   return visitedDeclarations.values.toList();
+}
+
+List<(Declaration, List<int>)> extractUntestedDeclarations(
+  Map<String, List<Declaration>> declarations,
+  CoverageData coverageResults,
+) {
+  final untestedDeclarations = <(Declaration, List<int>)>[];
+
+  for (final (filePath, uncoveredLines) in coverageResults) {
+    final fileDeclarations = declarations[filePath] ?? [];
+    for (final declaration in fileDeclarations) {
+      final lines = <int>[];
+      for (final line in uncoveredLines) {
+        if (line >= declaration.startLine && line <= declaration.endLine) {
+          lines.add(line - declaration.startLine);
+        }
+      }
+      if (lines.isNotEmpty) {
+        untestedDeclarations.add((declaration, lines));
+      }
+    }
+  }
+
+  return untestedDeclarations;
+}
+
+/// TODO(https://github.com/AmrAhmed119/dart-testgen/issues/12): use package_config
+/// Converts an absolute file path into a package import path
+String _toPackageImportPath({
+  required String absoluteFilePath,
+  required String packageRoot,
+  required String packageName,
+}) {
+  final libPath = p.join(packageRoot, 'lib');
+  if (!p.isWithin(libPath, absoluteFilePath) &&
+      absoluteFilePath != packageRoot) {
+    throw ArgumentError(
+      'File is not inside the lib directory: $absoluteFilePath',
+    );
+  }
+
+  final relativePath = p.relative(absoluteFilePath, from: libPath);
+  return 'package:$packageName/$relativePath';
 }

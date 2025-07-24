@@ -2,6 +2,7 @@ import 'dart:io';
 
 import 'package:args/args.dart';
 import 'package:path/path.dart' as path;
+import 'package:testgen/src/analyzer/declaration.dart';
 import 'package:testgen/src/analyzer/extractor.dart';
 import 'package:testgen/src/coverage/coverage_collection.dart';
 import 'package:testgen/src/coverage/util.dart';
@@ -101,6 +102,13 @@ ${parser.usage}
           ? getAllWorkspaceNames(packageDir)
           : results['scope-output'] as List<String>;
 
+  if (scopes.length != 1) {
+    fail(
+      'Workspace support is not implemented yet. '
+      'Please specify a single package scope.',
+    );
+  }
+
   return Flags(
     package: packageDir,
     vmServicePort: results['port'],
@@ -112,12 +120,36 @@ ${parser.usage}
 
 Future<void> main(List<String> arguments) async {
   final flags = await parseArgs(arguments);
-  await runTestsAndCollectCoverage(
+  final coverage = await runTestsAndCollectCoverage(
     flags.package,
     vmServicePort: flags.vmServicePort,
     branchCoverage: flags.branchCoverage,
     functionCoverage: flags.functionCoverage,
     scopeOutput: flags.scopeOutput,
   );
-  await extractDeclarations(flags.package);
+  final coverageByFile = formatCoverage(coverage);
+
+  final declarations = await extractDeclarations(
+    flags.package,
+    flags.scopeOutput.first,
+  );
+
+  final Map<String, List<Declaration>> declarationsByFile = {};
+  for (final declaration in declarations) {
+    declarationsByFile.putIfAbsent(declaration.path, () => []).add(declaration);
+  }
+
+  final untestedDeclarations = extractUntestedDeclarations(
+    declarationsByFile,
+    coverageByFile,
+  );
+
+  for (final (decl, lines) in untestedDeclarations) {
+    print(
+      'Untested declaration: ${decl.name} in ${decl.path} '
+      'Uncovered lines: ${lines.join(', ')}',
+    );
+  }
+
+  exit(0);
 }
