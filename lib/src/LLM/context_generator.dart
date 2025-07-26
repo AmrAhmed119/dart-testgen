@@ -45,14 +45,22 @@ String formatContext(Map<Declaration?, List<Declaration>> parentMap) {
   return buffer.toString();
 }
 
-/// Marks the specified [lines] in the [declaration]'s source code as untested
-/// by appending a comment to each line. Returns the modified source code as a string.
-String markUntestedLines(Declaration declaration, List<int> lines) {
-  final newCode = List<String>.from(declaration.sourceCode);
+/// Returns the code for [declaration] after marking the specified [lines]
+/// as untested, and wrapping it in the parent declaration's context if available.
+String formatUntestedCode(Declaration declaration, List<int> lines) {
+  final markedCode = List<String>.from(declaration.sourceCode);
   for (final line in lines) {
-    newCode[line] += ' // UNTESTED';
+    markedCode[line] += ' // UNTESTED';
   }
-  return newCode.join('\n');
+
+  return '''
+// Code Snippet package path: ${declaration.path}
+${declaration.parent?.sourceCode.join('\n') ?? ''}
+
+${markedCode.join('\n')}
+
+${declaration.parent != null ? '}' : ''}
+''';
 }
 
 void _dfs(

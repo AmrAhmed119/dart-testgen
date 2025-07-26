@@ -2,6 +2,7 @@ import 'dart:io';
 
 import 'package:args/args.dart';
 import 'package:path/path.dart' as path;
+import 'package:testgen/src/LLM/context_generator.dart';
 import 'package:testgen/src/analyzer/declaration.dart';
 import 'package:testgen/src/analyzer/extractor.dart';
 import 'package:testgen/src/coverage/coverage_collection.dart';
@@ -144,11 +145,18 @@ Future<void> main(List<String> arguments) async {
     coverageByFile,
   );
 
-  for (final (decl, lines) in untestedDeclarations) {
-    print(
-      'Untested declaration: ${decl.name} in ${decl.path} '
-      'Uncovered lines: ${lines.join(', ')}',
-    );
+  for (final (declaration, lines) in untestedDeclarations) {
+    final toBeTestedCode = formatUntestedCode(declaration, lines);
+    final contextMap = generateContextForDeclaration(declaration);
+    final contextCode = formatContext(contextMap);
+
+    final prompt =
+        'TO BE TESTEDCODE:\n'
+        '$toBeTestedCode'
+        '${contextCode.isNotEmpty ? 'CONTEXT:\n' : ''}$contextCode';
+
+    print(prompt);
+    print('-------------------------------------------------\n\n');
   }
 
   exit(0);
