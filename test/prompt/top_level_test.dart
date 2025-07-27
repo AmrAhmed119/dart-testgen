@@ -121,5 +121,28 @@ int var3 =
 '''),
       );
     });
+
+    test('Test untested code of func2', () {
+      final code = formatUntestedCode(decls['func2']!, <int>[6, 7, 8, 9, 10]);
+      expect(code, equals('''
+// Code Snippet package path: package:testgen/..
+
+
+void func2(Class1 c1, Enum e) {
+  print(Enum.value1.index);
+  print(Class1().field);
+  print(Class1().method1());
+  print(1.method2());
+  print(func1());
+  print(var1); // UNTESTED
+  print(var2); // UNTESTED
+  print(var4(3)); // UNTESTED
+  print(var5); // UNTESTED
+  print(var6); // UNTESTED
+}
+
+
+'''));
+    });
   });
 }

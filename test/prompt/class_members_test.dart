@@ -98,5 +98,32 @@ set field3(int i) => _field3 = i;
 '''),
       );
     });
+
+    test('Test untested code of method4', () {
+      final code = formatUntestedCode(decls['method4']!, <int>[2, 3, 10, 11]);
+      expect(
+        code,
+        equals('''
+// Code Snippet package path: package:testgen/..
+class Class2 extends Class1 with Logger {
+
+void method4() {
+    print(globalVar1);
+    globalFunc(1); // UNTESTED
+    log('test'); // UNTESTED
+    print(field1);
+    method1();
+    'test'.method2();
+    print(Enum.value1);
+    print(field2);
+    print(field4);
+    field3 = 3; // UNTESTED
+    method4(); // UNTESTED
+  }
+
+}
+'''),
+      );
+    });
   });
 }
