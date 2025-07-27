@@ -124,7 +124,9 @@ int var3 =
 
     test('Test untested code of func2', () {
       final code = formatUntestedCode(decls['func2']!, <int>[6, 7, 8, 9, 10]);
-      expect(code, equals('''
+      expect(
+        code,
+        equals('''
 // Code Snippet package path: package:testgen/..
 
 
@@ -142,7 +144,8 @@ void func2(Class1 c1, Enum e) {
 }
 
 
-'''));
+'''),
+      );
     });
   });
 }
