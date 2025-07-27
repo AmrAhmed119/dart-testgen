@@ -24,7 +24,7 @@ String formatContext(Map<Declaration?, List<Declaration>> parentMap) {
 
   for (final MapEntry(key: parent, value: children) in parentMap.entries) {
     if (parent != null) {
-      buffer.writeln('// Code Snippet package path: ${parent.path} \n');
+      buffer.writeln('// Code Snippet package path: ${parent.path}');
 
       buffer.writeln('${parent.sourceCode.join('\n')} \n');
       buffer.writeln('// rest of the code... \n');
@@ -36,7 +36,7 @@ String formatContext(Map<Declaration?, List<Declaration>> parentMap) {
     } else {
       for (final child in children) {
         if (parentMap.containsKey(child)) continue;
-        buffer.writeln('// Code Snippet package path: ${child.path} \n');
+        buffer.writeln('// Code Snippet package path: ${child.path}');
         buffer.writeln('${child.sourceCode.join('\n')} \n');
       }
     }
