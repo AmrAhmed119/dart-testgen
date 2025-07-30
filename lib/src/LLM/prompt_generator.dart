@@ -12,11 +12,15 @@ abstract class PromptGenerator {
     return '''
 Given the following Dart code to test:
 
+```dart
 $toBeTestedCode
+```
 
 With the following context:
 
+```dart
 $contextCode
+```
 
 Write a Dart unit test that covers **only** the lines marked with `// UNTESTED`.
 

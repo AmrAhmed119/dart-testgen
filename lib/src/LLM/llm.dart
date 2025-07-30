@@ -1,23 +1,8 @@
+import 'dart:convert';
 import 'dart:io';
 
 import 'package:google_generative_ai/google_generative_ai.dart';
-import 'package:testgen/src/file_manager.dart';
-import 'package:testgen/src/prompt_generator.dart';
-import 'package:testgen/src/utils.dart';
-
-class LLMResponse {
-  final String code;
-  final String comments;
-  final List<dynamic> dependencies;
-  final bool needTesting;
-
-  LLMResponse({
-    required this.code,
-    required this.needTesting,
-    this.comments = '',
-    List<dynamic>? dependencies,
-  }) : dependencies = dependencies ?? [];
-}
+import 'package:testgen/src/LLM/utils.dart';
 
 final _apiKey = () {
   final apiKey = Platform.environment['GEMINI_API_KEY'];
@@ -28,8 +13,20 @@ final _apiKey = () {
   return apiKey;
 }();
 
-GenerativeModel createModel() {
-  // Define `Structured output` schema for the model output.
+/// Creates and configures a [GenerativeModel] for LLM-based code generation.
+///
+/// - [model]: The model name to use. such as:
+///     - 'gemini-2.5-flash'
+///     - 'gemini-2.5-pro'
+///     - 'gemini-2.5-flash-lite', ...
+/// - [apiKey]: Optional API key for authentication. If not provided,
+///   uses the GEMINI_API_KEY environment variable.
+///
+/// The returned model is configured with a response schema for test case generation,
+GenerativeModel createModel({
+  String model = 'gemini-2.5-flash',
+  String? apiKey,
+}) {
   final schema = Schema.object(
     description: 'Schema for generated test cases from the model',
     properties: {
@@ -45,18 +42,13 @@ GenerativeModel createModel() {
         description: 'Comments from the model about the generation process.',
         nullable: true,
       ),
-      'dependencies': Schema.array(
-        description: 'List of additional dependencies required for testing.',
-        items: Schema.string(),
-        nullable: true,
-      ),
     },
     requiredProperties: ['code'],
   );
 
   return GenerativeModel(
-    model: 'gemini-2.0-flash',
-    apiKey: _apiKey,
+    model: model,
+    apiKey: apiKey ?? _apiKey,
     generationConfig: GenerationConfig(
       responseMimeType: 'application/json',
       responseSchema: schema,
@@ -64,26 +56,24 @@ GenerativeModel createModel() {
   );
 }
 
-Future<(LLMResponse?, ChatSession)> generateTest(
-  String filePath,
-  String fileCode,
-  GenerativeModel model,
-) async {
+Future<LLMResponse?> generateTest(GenerativeModel model, String prompt) async {
   final chat = model.startChat();
 
   try {
-    final response = await chat.sendMessage(
-      Content.text(
-        PromptGenerator.testPrompt(
-          fileCode,
-          getRootDirectoryRelativePath(filePath),
-        ),
-      ),
-    );
+    final response = await chat.sendMessage(Content.text(prompt));
+    Future.delayed(const Duration(seconds: 3));
+    if (response.text == null) {
+      throw Exception('No response text received from the model.');
+    }
 
-    return (jsonParser(response), chat);
+    final json = jsonDecode(response.text!);
+    return LLMResponse(
+      code: json['code'],
+      chatSession: chat,
+      comments: json['comments'] ?? '',
+    );
   } catch (e) {
     stderr.writeln('Error during test generation: $e');
-    return (null, chat);
+    return null;
   }
 }

@@ -1,9 +1,12 @@
 import 'dart:io';
 
+import 'package:analyzer/dart/analysis/utilities.dart';
 import 'package:args/args.dart';
 import 'package:path/path.dart' as path;
 import 'package:testgen/src/LLM/context_generator.dart';
+import 'package:testgen/src/LLM/llm.dart';
 import 'package:testgen/src/LLM/prompt_generator.dart';
+import 'package:testgen/src/LLM/utils.dart';
 import 'package:testgen/src/analyzer/declaration.dart';
 import 'package:testgen/src/analyzer/extractor.dart';
 import 'package:testgen/src/coverage/coverage_collection.dart';
@@ -42,6 +45,16 @@ ArgParser _createArgParser() =>
             'the current package (including all subpackages, if this is a '
             'workspace).',
       )
+      ..addOption(
+        'model',
+        defaultsTo: 'gemini-2.5-flash',
+        help: 'The name of the LLM model to use for test generation.',
+      )
+      ..addOption(
+        'api-key',
+        help:
+            'The API key required for authenticating requests to the service.',
+      )
       ..addFlag('help', abbr: 'h', negatable: false, help: 'Show this help.');
 
 /// Contains all the options regarding coverage options or LLM options (to be added)
@@ -52,6 +65,8 @@ class Flags {
     required this.branchCoverage,
     required this.functionCoverage,
     required this.scopeOutput,
+    required this.model,
+    required this.apiKey,
   });
 
   final String package;
@@ -59,6 +74,8 @@ class Flags {
   final bool branchCoverage;
   final bool functionCoverage;
   final Set<String> scopeOutput;
+  final String model;
+  final String apiKey;
 }
 
 Future<Flags> parseArgs(List<String> arguments) async {
@@ -111,12 +128,23 @@ ${parser.usage}
     );
   }
 
+  final key =
+      results['api-key'] as String? ?? Platform.environment['GEMINI_API_KEY'];
+  if (key == null) {
+    fail(
+      'No API key provided. Please set the GEMINI_API_KEY environment variable '
+      'or use the --api-key option.',
+    );
+  }
+
   return Flags(
     package: packageDir,
     vmServicePort: results['port'],
     branchCoverage: results['branch-coverage'],
     functionCoverage: results['function-coverage'],
     scopeOutput: scopes.toSet(),
+    model: results['model'] as String,
+    apiKey: key,
   );
 }
 
@@ -146,12 +174,33 @@ Future<void> main(List<String> arguments) async {
     coverageByFile,
   );
 
+  final model = createModel(model: flags.model, apiKey: flags.apiKey);
+
   for (final (declaration, lines) in untestedDeclarations) {
     final toBeTestedCode = formatUntestedCode(declaration, lines);
     final contextMap = generateContextForDeclaration(declaration);
     final contextCode = formatContext(contextMap);
     final prompt = PromptGenerator.testCode(toBeTestedCode, contextCode);
-    print(prompt);
+    final response = await generateTest(model, prompt);
+    final errors =
+        response != null ? parseString(content: response.code).errors : [];
+
+    if (errors.isNotEmpty || response == null || response.code.isEmpty) {
+      // TODO: implement a retry mechanism (feedback loop)
+    }
+
+    if (response == null) {
+      stderr.writeln(
+        'Failed to generate test for ${declaration.name} (${declaration.id}).',
+      );
+      continue;
+    }
+
+    writeTestToFile(
+      response,
+      flags.package,
+      '${declaration.name}_${declaration.id}_test.dart',
+    );
   }
 
   exit(0);
