@@ -1,12 +1,10 @@
 import 'dart:io';
 
-import 'package:analyzer/dart/analysis/utilities.dart';
 import 'package:args/args.dart';
 import 'package:path/path.dart' as path;
 import 'package:testgen/src/LLM/context_generator.dart';
 import 'package:testgen/src/LLM/llm.dart';
 import 'package:testgen/src/LLM/prompt_generator.dart';
-import 'package:testgen/src/LLM/utils.dart';
 import 'package:testgen/src/analyzer/declaration.dart';
 import 'package:testgen/src/analyzer/extractor.dart';
 import 'package:testgen/src/coverage/coverage_collection.dart';
@@ -57,7 +55,7 @@ ArgParser _createArgParser() =>
       )
       ..addFlag('help', abbr: 'h', negatable: false, help: 'Show this help.');
 
-/// Contains all the options regarding coverage options or LLM options (to be added)
+/// Contains all the options regarding coverage options or LLM options.
 class Flags {
   const Flags({
     required this.package,
@@ -178,26 +176,13 @@ Future<void> main(List<String> arguments) async {
 
   for (final (declaration, lines) in untestedDeclarations) {
     final toBeTestedCode = formatUntestedCode(declaration, lines);
-    final contextMap = generateContextForDeclaration(declaration);
+    final contextMap = generateContextForDeclaration(declaration, maxDepth: 2);
     final contextCode = formatContext(contextMap);
+    print('Declaration name ${declaration.name}');
     final prompt = PromptGenerator.testCode(toBeTestedCode, contextCode);
-    final response = await generateTest(model, prompt);
-    final errors =
-        response != null ? parseString(content: response.code).errors : [];
-
-    if (errors.isNotEmpty || response == null || response.code.isEmpty) {
-      // TODO: implement a retry mechanism (feedback loop)
-    }
-
-    if (response == null) {
-      stderr.writeln(
-        'Failed to generate test for ${declaration.name} (${declaration.id}).',
-      );
-      continue;
-    }
-
-    writeTestToFile(
-      response,
+    await generateTestFile(
+      model,
+      prompt,
       flags.package,
       '${declaration.name}_${declaration.id}_test.dart',
     );
