@@ -4,7 +4,6 @@ import 'package:args/args.dart';
 import 'package:path/path.dart' as path;
 import 'package:testgen/src/LLM/context_generator.dart';
 import 'package:testgen/src/LLM/llm.dart';
-import 'package:testgen/src/LLM/prompt_generator.dart';
 import 'package:testgen/src/analyzer/declaration.dart';
 import 'package:testgen/src/analyzer/extractor.dart';
 import 'package:testgen/src/coverage/coverage_collection.dart';
@@ -45,17 +44,17 @@ ArgParser _createArgParser() =>
       )
       ..addOption(
         'model',
-        defaultsTo: 'gemini-2.5-flash',
-        help: 'The name of the LLM model to use for test generation.',
+        defaultsTo: 'gemini-2.5-flash-lite',
+        help: 'Gemini model to use for generating tests.',
       )
       ..addOption(
         'api-key',
+        defaultsTo: Platform.environment['GEMINI_API_KEY'],
         help:
-            'The API key required for authenticating requests to the service.',
+            'Gemini API key for authentication (or set GEMINI_API_KEY env var).',
       )
       ..addFlag('help', abbr: 'h', negatable: false, help: 'Show this help.');
 
-/// Contains all the options regarding coverage options or LLM options.
 class Flags {
   const Flags({
     required this.package,
@@ -126,9 +125,7 @@ ${parser.usage}
     );
   }
 
-  final key =
-      results['api-key'] as String? ?? Platform.environment['GEMINI_API_KEY'];
-  if (key == null) {
+  if (results['api-key'] == null) {
     fail(
       'No API key provided. Please set the GEMINI_API_KEY environment variable '
       'or use the --api-key option.',
@@ -142,7 +139,7 @@ ${parser.usage}
     functionCoverage: results['function-coverage'],
     scopeOutput: scopes.toSet(),
     model: results['model'] as String,
-    apiKey: key,
+    apiKey: results['api-key'] as String,
   );
 }
 
@@ -174,18 +171,36 @@ Future<void> main(List<String> arguments) async {
 
   final model = createModel(model: flags.model, apiKey: flags.apiKey);
 
+  // Ensure that the 'test' and 'mockito' packages are added to the pubspec.
+  final prcoess = await Process.run('dart', [
+    'pub',
+    'add',
+    'test',
+    'mockito',
+  ], workingDirectory: flags.package);
+  if (prcoess.exitCode != 0) {
+    print('Failed to run dart pub add test mockito:');
+    exit(1);
+  }
+
+  int done = 0;
   for (final (declaration, lines) in untestedDeclarations) {
+    print('${untestedDeclarations.length - done} remaining');
+    done++;
     final toBeTestedCode = formatUntestedCode(declaration, lines);
-    final contextMap = generateContextForDeclaration(declaration, maxDepth: 2);
+    final contextMap = generateContextForDeclaration(declaration, maxDepth: 5);
     final contextCode = formatContext(contextMap);
-    print('Declaration name ${declaration.name}');
-    final prompt = PromptGenerator.testCode(toBeTestedCode, contextCode);
-    await generateTestFile(
+
+    final (status, chat) = await generateTestFile(
       model,
-      prompt,
+      toBeTestedCode,
+      contextCode,
       flags.package,
       '${declaration.name}_${declaration.id}_test.dart',
     );
+    if (status == TestStatus.created) {
+      print('Tokens used: ${await getTokenCount(model, chat)}');
+    }
   }
 
   exit(0);
