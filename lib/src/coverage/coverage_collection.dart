@@ -152,17 +152,22 @@ Future<Map<String, dynamic>> runTestsAndCollectCoverage(
 ///   - The second element is a list of line numbers in that file which were
 ///     not hit by any test case (i.e., lines that require additional testing).
 CoverageData formatCoverage(Map<String, dynamic> coverageResults) {
-  final CoverageData formattedData = [];
   final List<Map<String, dynamic>> coverage = coverageResults['coverage'];
+  final coveragePerFile = <String, Set<int>>{};
 
+  // Eliminate duplicates from coverage results
   for (final {'source': String source, 'hits': List<int> hits} in coverage) {
-    final zeroHits = _extractZeroHitLines(hits);
-    if (zeroHits.isNotEmpty) {
-      formattedData.add((source, zeroHits));
-    }
+    if (source.isEmpty || hits.isEmpty) continue;
+
+    coveragePerFile
+        .putIfAbsent(source, () => {})
+        .addAll(_extractZeroHitLines(hits));
   }
 
-  return formattedData;
+  return [
+    for (final MapEntry(:key, :value) in coveragePerFile.entries)
+      if (value.isNotEmpty) (key, value.toList()),
+  ];
 }
 
 List<int> _extractZeroHitLines(List<int> hits) {
