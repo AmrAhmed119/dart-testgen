@@ -22,18 +22,6 @@ class TestFile {
       '// Auto-Generated Test File\n'
       '$content\n',
     );
-
-    // TO BE DELETED........................................
-    // run this command after it dart run build_runner build
-    final process = await Process.start('dart', [
-      'run',
-      'build_runner',
-      'build',
-    ], workingDirectory: packagePath);
-    final exitCode = await process.exitCode;
-    if (exitCode != 0) {
-      print('Failed to run build_runner:');
-    }
   }
 
   Future<void> deleteTest() async {
@@ -46,6 +34,7 @@ class TestFile {
   Future<String?> runAnalyzer(String code) async {
     final result = parseString(content: code);
 
+    // TODO: Add a command line option to specify the error severity level
     final errors =
         result.errors
             .where((error) => error.severity == Severity.error)
