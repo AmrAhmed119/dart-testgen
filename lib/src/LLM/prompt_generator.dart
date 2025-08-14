@@ -29,6 +29,7 @@ Requirements:
 - If the code is trivial or untestable, set "needTesting": false and leave "code" empty (don't generate any code).
 - Skip generating tests for private members (those starting with `_`).
 - Primarily use the `test` package for writing tests, avoiding using `mockito` package.
+- Use the actual classes and methods from the codebase - import the necessary packages instead of creating mock or temporary classes.
 - Import any other required Dart packages (e.g., `async`, `test`, etc.) as needed.
 - Follow Dart testing best practices with descriptive test names.
 

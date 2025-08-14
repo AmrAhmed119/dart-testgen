@@ -94,7 +94,7 @@ GenerativeModel createModel({String model = 'gemini-2.5-pro', String? apiKey}) {
 ///
 /// Returns a [TestStatus] indicating whether the test was created, failed, or
 /// skipped, along with the [ChatSession] for any further analytics.
-Future<(TestStatus, ChatSession)> generateTestFile(
+Future<(TestStatus, ChatSession, TestFile)> generateTestFile(
   GenerativeModel model,
   String toBeTestedCode,
   String contextCode,
@@ -185,7 +185,7 @@ Future<(TestStatus, ChatSession)> generateTestFile(
   }
 
   print('\t 🏁 Test generation completed with status: ${status.name}');
-  return (status, chat);
+  return (status, chat, testFileManager);
 }
 
 Future<int> getTokenCount(GenerativeModel model, ChatSession chat) async {

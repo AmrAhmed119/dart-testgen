@@ -5,9 +5,9 @@ import 'package:coverage/coverage.dart';
 import 'package:package_config/package_config.dart';
 import 'package:path/path.dart' as path;
 import 'package:stack_trace/stack_trace.dart';
+import 'package:testgen/src/analyzer/declaration.dart';
+import 'package:testgen/src/analyzer/extractor.dart';
 import 'package:testgen/src/coverage/util.dart';
-
-// TODO: Add Support for collecting coverage metrics
 
 typedef CoverageData = List<(String, List<int>)>;
 
@@ -154,6 +154,12 @@ Future<Map<String, dynamic>> runTestsAndCollectCoverage(
   return coverageResults;
 }
 
+/// Files that are never imported or touched by any test are completely missing
+/// from coverage data which only tracks files that are executed during tests.
+///
+/// This function finds those untracked files in the lib directory and adds them
+/// to the coverage results with all lines marked as uncovered so they can be
+/// identified for test generation.
 Future<void> _addUntrackedFiles(
   Map<String, dynamic> coverageResults,
   String packageDir,
@@ -226,4 +232,43 @@ List<int> _extractZeroHitLines(List<int> hits) {
     for (var i = 0; i < hits.length; i += 2)
       if (hits[i + 1] == 0) hits[i],
   ];
+}
+
+/// Evaluates whether a generated test file has successfully improved code
+/// coverage for a specific declaration.
+///
+/// This function runs test after a new test has been generated and compares
+/// the current coverage metrics against the baseline coverage metrics that were
+/// recorded before test generation. It determines if the newly generated test
+/// is actually hitting the previously uncovered lines.
+Future<bool> validateTestCoverageImprovement(
+  String packageDir,
+  Declaration declaration,
+  int baselineUncoveredLines, {
+  required Set<String> scopeOutput,
+  required Map<String, List<Declaration>> declarationsByFile,
+}) async {
+  final coverage = await runTestsAndCollectCoverage(
+    packageDir,
+    scopeOutput: scopeOutput,
+  );
+  final coverageByFile = formatCoverage(coverage);
+
+  final untestedDeclarations = extractUntestedDeclarations(
+    declarationsByFile,
+    coverageByFile,
+  );
+
+  final currentStatus =
+      untestedDeclarations.where((d) => d.$1.id == declaration.id).firstOrNull;
+
+  final currentUncoveredLines = currentStatus?.$2.length ?? 0;
+
+  print(
+    '📊 Coverage analysis for ${declaration.name}:\n'
+    '   • Baseline uncovered lines: $baselineUncoveredLines\n'
+    '   • Current uncovered lines: $currentUncoveredLines\n'
+    '   • Coverage improved: ${currentUncoveredLines < baselineUncoveredLines}',
+  );
+  return currentUncoveredLines < baselineUncoveredLines;
 }

@@ -53,6 +53,12 @@ ArgParser _createArgParser() =>
         help:
             'Gemini API key for authentication (or set GEMINI_API_KEY env var).',
       )
+      ..addFlag(
+        'effective-tests-only',
+        defaultsTo: false,
+        help:
+            'Restrict test generation to only create tests that increase coverage.',
+      )
       ..addFlag('help', abbr: 'h', negatable: false, help: 'Show this help.');
 
 class Flags {
@@ -64,6 +70,7 @@ class Flags {
     required this.scopeOutput,
     required this.model,
     required this.apiKey,
+    required this.effectiveTestsOnly,
   });
 
   final String package;
@@ -73,6 +80,7 @@ class Flags {
   final Set<String> scopeOutput;
   final String model;
   final String apiKey;
+  final bool effectiveTestsOnly;
 }
 
 Future<Flags> parseArgs(List<String> arguments) async {
@@ -140,6 +148,7 @@ ${parser.usage}
     scopeOutput: scopes.toSet(),
     model: results['model'] as String,
     apiKey: results['api-key'] as String,
+    effectiveTestsOnly: results['effective-tests-only'] as bool,
   );
 }
 
@@ -189,7 +198,7 @@ Future<void> main(List<String> arguments) async {
     final contextMap = generateContextForDeclaration(declaration, maxDepth: 5);
     final contextCode = formatContext(contextMap);
 
-    final (status, chat) = await generateTestFile(
+    final (status, chat, testFileManager) = await generateTestFile(
       model,
       toBeTestedCode,
       contextCode,
@@ -197,9 +206,25 @@ Future<void> main(List<String> arguments) async {
       '${declaration.name}_${declaration.id}_test.dart',
     );
     if (status == TestStatus.created) {
-      print('Tokens used: ${await getTokenCount(model, chat)}');
+      if (flags.effectiveTestsOnly) {
+        final isImproved = await validateTestCoverageImprovement(
+          flags.package,
+          declaration,
+          lines.length,
+          scopeOutput: flags.scopeOutput,
+          declarationsByFile: declarationsByFile,
+        );
+        if (isImproved) {
+          print('✅ Test improved coverage for ${declaration.name}.');
+        } else {
+          print(
+            '❌ Test did not improve coverage for ${declaration.name}. '
+            'Deleting test file.',
+          );
+          testFileManager.deleteTest();
+        }
+      }
     }
-    // TODO: Handle the case where the test is not hitting the uncovered lines.
   }
 
   exit(0);
