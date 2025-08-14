@@ -2,8 +2,12 @@ import 'dart:async';
 import 'dart:io';
 
 import 'package:coverage/coverage.dart';
+import 'package:package_config/package_config.dart';
+import 'package:path/path.dart' as path;
 import 'package:stack_trace/stack_trace.dart';
 import 'package:testgen/src/coverage/util.dart';
+
+// TODO: Add Support for collecting coverage metrics
 
 typedef CoverageData = List<(String, List<int>)>;
 
@@ -37,7 +41,10 @@ Future<void> _dartRun(
   listen(process.stderr, stderr, onStderr);
 
   final result = await process.exitCode;
-  if (result != 0) {
+
+  // Don't throw an error if the process exits with code 79 which is
+  // common for no tests found.
+  if (result != 0 && result != 79) {
     throw ProcessException(Platform.executable, args, '', result);
   }
 }
@@ -142,7 +149,51 @@ Future<Map<String, dynamic>> runTestsAndCollectCoverage(
 
   await testProcess;
 
+  await _addUntrackedFiles(coverageResults, packageDir);
+
   return coverageResults;
+}
+
+Future<void> _addUntrackedFiles(
+  Map<String, dynamic> coverageResults,
+  String packageDir,
+) async {
+  final List<Map<String, dynamic>> coverage = coverageResults['coverage'];
+
+  final config = await loadPackageConfig(
+    File(path.join(packageDir, '.dart_tool', 'package_config.json')),
+  );
+
+  final trackedFiles =
+      coverage.map((entry) => entry['source'] as String).toSet();
+
+  final untrackedFiles = Directory(path.join(packageDir, 'lib'))
+      .listSync(recursive: true)
+      .whereType<File>()
+      .map((file) => file.path)
+      .where(
+        (filePath) =>
+            filePath.endsWith('.dart') &&
+            !trackedFiles.contains(
+              config.toPackageUri(File(filePath).uri).toString(),
+            ),
+      );
+
+  for (final filePath in untrackedFiles) {
+    coverage.add({
+      'source': config.toPackageUri(File(filePath).uri).toString(),
+      'hits': _markAllLinesAsUntested(filePath),
+    });
+  }
+}
+
+List<int> _markAllLinesAsUntested(String filePath) {
+  final file = File(filePath);
+  final lineCount = file.readAsLinesSync().length;
+
+  return Iterable<int>.generate(
+    lineCount,
+  ).expand((lineNum) => [lineNum + 1, 0]).toList();
 }
 
 /// Formats raw coverage results into a [CoverageData] structure.

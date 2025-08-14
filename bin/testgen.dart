@@ -44,7 +44,7 @@ ArgParser _createArgParser() =>
       )
       ..addOption(
         'model',
-        defaultsTo: 'gemini-2.5-flash-lite',
+        defaultsTo: 'gemini-2.5-pro',
         help: 'Gemini model to use for generating tests.',
       )
       ..addOption(
@@ -171,15 +171,13 @@ Future<void> main(List<String> arguments) async {
 
   final model = createModel(model: flags.model, apiKey: flags.apiKey);
 
-  // Ensure that the 'test' and 'mockito' packages are added to the pubspec.
-  final prcoess = await Process.run('dart', [
+  final process = await Process.run('dart', [
     'pub',
     'add',
     'test',
-    'mockito',
   ], workingDirectory: flags.package);
-  if (prcoess.exitCode != 0) {
-    print('Failed to run dart pub add test mockito:');
+  if (process.exitCode != 0) {
+    print('Failed to run dart pub add test');
     exit(1);
   }
 
@@ -201,6 +199,7 @@ Future<void> main(List<String> arguments) async {
     if (status == TestStatus.created) {
       print('Tokens used: ${await getTokenCount(model, chat)}');
     }
+    // TODO: Handle the case where the test is not hitting the uncovered lines.
   }
 
   exit(0);
