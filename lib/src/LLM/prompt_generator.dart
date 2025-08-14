@@ -28,7 +28,8 @@ Requirements:
 - Use appropriate mocking for external dependencies.
 - If the code is trivial or untestable, set "needTesting": false and leave "code" empty (don't generate any code).
 - Skip generating tests for private members (those starting with `_`).
-- Import all required packages (test (dart package), mockito (dart package), async, etc.)
+- Primarily use the `test` package for writing tests, avoiding using `mockito` package.
+- Import any other required Dart packages (e.g., `async`, `test`, etc.) as needed.
 - Follow Dart testing best practices with descriptive test names.
 
 Return the complete test file with proper imports and test structure.
