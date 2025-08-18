@@ -3,7 +3,7 @@ import 'dart:io';
 import 'package:args/args.dart';
 import 'package:path/path.dart' as path;
 import 'package:testgen/src/LLM/context_generator.dart';
-import 'package:testgen/src/LLM/prompt_generator.dart';
+import 'package:testgen/src/LLM/llm.dart';
 import 'package:testgen/src/analyzer/declaration.dart';
 import 'package:testgen/src/analyzer/extractor.dart';
 import 'package:testgen/src/coverage/coverage_collection.dart';
@@ -42,9 +42,25 @@ ArgParser _createArgParser() =>
             'the current package (including all subpackages, if this is a '
             'workspace).',
       )
+      ..addOption(
+        'model',
+        defaultsTo: 'gemini-2.5-pro',
+        help: 'Gemini model to use for generating tests.',
+      )
+      ..addOption(
+        'api-key',
+        defaultsTo: Platform.environment['GEMINI_API_KEY'],
+        help:
+            'Gemini API key for authentication (or set GEMINI_API_KEY env var).',
+      )
+      ..addFlag(
+        'effective-tests-only',
+        defaultsTo: false,
+        help:
+            'Restrict test generation to only create tests that increase coverage.',
+      )
       ..addFlag('help', abbr: 'h', negatable: false, help: 'Show this help.');
 
-/// Contains all the options regarding coverage options or LLM options (to be added)
 class Flags {
   const Flags({
     required this.package,
@@ -52,6 +68,9 @@ class Flags {
     required this.branchCoverage,
     required this.functionCoverage,
     required this.scopeOutput,
+    required this.model,
+    required this.apiKey,
+    required this.effectiveTestsOnly,
   });
 
   final String package;
@@ -59,6 +78,9 @@ class Flags {
   final bool branchCoverage;
   final bool functionCoverage;
   final Set<String> scopeOutput;
+  final String model;
+  final String apiKey;
+  final bool effectiveTestsOnly;
 }
 
 Future<Flags> parseArgs(List<String> arguments) async {
@@ -111,12 +133,22 @@ ${parser.usage}
     );
   }
 
+  if (results['api-key'] == null) {
+    fail(
+      'No API key provided. Please set the GEMINI_API_KEY environment variable '
+      'or use the --api-key option.',
+    );
+  }
+
   return Flags(
     package: packageDir,
     vmServicePort: results['port'],
     branchCoverage: results['branch-coverage'],
     functionCoverage: results['function-coverage'],
     scopeOutput: scopes.toSet(),
+    model: results['model'] as String,
+    apiKey: results['api-key'] as String,
+    effectiveTestsOnly: results['effective-tests-only'] as bool,
   );
 }
 
@@ -146,12 +178,53 @@ Future<void> main(List<String> arguments) async {
     coverageByFile,
   );
 
+  final model = createModel(model: flags.model, apiKey: flags.apiKey);
+
+  final process = await Process.run('dart', [
+    'pub',
+    'add',
+    'test',
+  ], workingDirectory: flags.package);
+  if (process.exitCode != 0) {
+    print('Failed to run dart pub add test');
+    exit(1);
+  }
+
+  int done = 0;
   for (final (declaration, lines) in untestedDeclarations) {
+    print('${untestedDeclarations.length - done} remaining');
+    done++;
     final toBeTestedCode = formatUntestedCode(declaration, lines);
-    final contextMap = generateContextForDeclaration(declaration);
+    final contextMap = generateContextForDeclaration(declaration, maxDepth: 5);
     final contextCode = formatContext(contextMap);
-    final prompt = PromptGenerator.testCode(toBeTestedCode, contextCode);
-    print(prompt);
+
+    final (status, chat, testFileManager) = await generateTestFile(
+      model,
+      toBeTestedCode,
+      contextCode,
+      flags.package,
+      '${declaration.name}_${declaration.id}_test.dart',
+    );
+    if (status == TestStatus.created) {
+      if (flags.effectiveTestsOnly) {
+        final isImproved = await validateTestCoverageImprovement(
+          flags.package,
+          declaration,
+          lines.length,
+          scopeOutput: flags.scopeOutput,
+          declarationsByFile: declarationsByFile,
+        );
+        if (isImproved) {
+          print('✅ Test improved coverage for ${declaration.name}.');
+        } else {
+          print(
+            '❌ Test did not improve coverage for ${declaration.name}. '
+            'Deleting test file.',
+          );
+          testFileManager.deleteTest();
+        }
+      }
+    }
   }
 
   exit(0);

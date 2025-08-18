@@ -10,29 +10,60 @@
 abstract class PromptGenerator {
   static String testCode(String toBeTestedCode, String contextCode) {
     return '''
-Given the following Dart code to test:
+Generate a Dart unit test for the following code:
 
+```dart
 $toBeTestedCode
+```
 
 With the following context:
 
+```dart
 $contextCode
+```
 
-Write a Dart unit test that covers **only** the lines marked with `// UNTESTED`.
+Requirements:
+- Test ONLY the lines marked with `// UNTESTED` - ignore already tested code.
+- The provided code is partial, showing only relevant members.
+- Use appropriate mocking for external dependencies.
+- If the code is trivial or untestable, set "needTesting": false and leave "code" empty (don't generate any code).
+- Skip generating tests for private members (those starting with `_`).
+- Primarily use the `test` package for writing tests, avoiding using `mockito` package.
+- Use the actual classes and methods from the codebase - import the necessary packages instead of creating mock or temporary classes.
+- Import any other required Dart packages (e.g., `async`, `test`, etc.) as needed.
+- Follow Dart testing best practices with descriptive test names.
 
-- The provided code is **partial**, showing only relevant members (e.g., fields, methods).
-- The context code includes required dependencies or references.
-- Focus **only** on `// UNTESTED` lines — ignore already-tested ones.
-- Assume default values or minimal mocks where needed.
-- Return **only** the Dart test code — no comments, explanations, or extra output.
+Return the complete test file with proper imports and test structure.
 ''';
   }
 
   static String analysisError(String error) {
-    return 'to be added';
+    return '''
+The generated Dart code contains the following analyzer error(s):
+
+$error
+
+Fix these issues and return only the corrected, complete test code that will pass dart analyze.
+''';
   }
 
   static String testFailError(String error) {
-    return 'to be added';
+    return '''
+The generated test failed with the following error(s):
+
+$error
+
+Fix the test code and return only the corrected, complete test code that will pass all tests.
+''';
+  }
+
+  static String fixError(String error) {
+    return '''
+An error occurred during test generation:
+
+$error
+
+Fix these issues and return only the corrected, complete test code.
+''';
   }
 }

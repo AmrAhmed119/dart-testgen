@@ -2,7 +2,11 @@ import 'dart:async';
 import 'dart:io';
 
 import 'package:coverage/coverage.dart';
+import 'package:package_config/package_config.dart';
+import 'package:path/path.dart' as path;
 import 'package:stack_trace/stack_trace.dart';
+import 'package:testgen/src/analyzer/declaration.dart';
+import 'package:testgen/src/analyzer/extractor.dart';
 import 'package:testgen/src/coverage/util.dart';
 
 typedef CoverageData = List<(String, List<int>)>;
@@ -37,7 +41,10 @@ Future<void> _dartRun(
   listen(process.stderr, stderr, onStderr);
 
   final result = await process.exitCode;
-  if (result != 0) {
+
+  // Don't throw an error if the process exits with code 79 which is
+  // common for no tests found.
+  if (result != 0 && result != 79) {
     throw ProcessException(Platform.executable, args, '', result);
   }
 }
@@ -142,7 +149,57 @@ Future<Map<String, dynamic>> runTestsAndCollectCoverage(
 
   await testProcess;
 
+  await _addUntrackedFiles(coverageResults, packageDir);
+
   return coverageResults;
+}
+
+/// Files that are never imported or touched by any test are completely missing
+/// from coverage data which only tracks files that are executed during tests.
+///
+/// This function finds those untracked files in the lib directory and adds them
+/// to the coverage results with all lines marked as uncovered so they can be
+/// identified for test generation.
+Future<void> _addUntrackedFiles(
+  Map<String, dynamic> coverageResults,
+  String packageDir,
+) async {
+  final List<Map<String, dynamic>> coverage = coverageResults['coverage'];
+
+  final config = await loadPackageConfig(
+    File(path.join(packageDir, '.dart_tool', 'package_config.json')),
+  );
+
+  final trackedFiles =
+      coverage.map((entry) => entry['source'] as String).toSet();
+
+  final untrackedFiles = Directory(path.join(packageDir, 'lib'))
+      .listSync(recursive: true)
+      .whereType<File>()
+      .map((file) => file.path)
+      .where(
+        (filePath) =>
+            filePath.endsWith('.dart') &&
+            !trackedFiles.contains(
+              config.toPackageUri(File(filePath).uri).toString(),
+            ),
+      );
+
+  for (final filePath in untrackedFiles) {
+    coverage.add({
+      'source': config.toPackageUri(File(filePath).uri).toString(),
+      'hits': _markAllLinesAsUntested(filePath),
+    });
+  }
+}
+
+List<int> _markAllLinesAsUntested(String filePath) {
+  final file = File(filePath);
+  final lineCount = file.readAsLinesSync().length;
+
+  return Iterable<int>.generate(
+    lineCount,
+  ).expand((lineNum) => [lineNum + 1, 0]).toList();
 }
 
 /// Formats raw coverage results into a [CoverageData] structure.
@@ -152,17 +209,22 @@ Future<Map<String, dynamic>> runTestsAndCollectCoverage(
 ///   - The second element is a list of line numbers in that file which were
 ///     not hit by any test case (i.e., lines that require additional testing).
 CoverageData formatCoverage(Map<String, dynamic> coverageResults) {
-  final CoverageData formattedData = [];
   final List<Map<String, dynamic>> coverage = coverageResults['coverage'];
+  final coveragePerFile = <String, Set<int>>{};
 
+  // Eliminate duplicates from coverage results
   for (final {'source': String source, 'hits': List<int> hits} in coverage) {
-    final zeroHits = _extractZeroHitLines(hits);
-    if (zeroHits.isNotEmpty) {
-      formattedData.add((source, zeroHits));
-    }
+    if (source.isEmpty || hits.isEmpty) continue;
+
+    coveragePerFile
+        .putIfAbsent(source, () => {})
+        .addAll(_extractZeroHitLines(hits));
   }
 
-  return formattedData;
+  return [
+    for (final MapEntry(:key, :value) in coveragePerFile.entries)
+      if (value.isNotEmpty) (key, value.toList()),
+  ];
 }
 
 List<int> _extractZeroHitLines(List<int> hits) {
@@ -170,4 +232,43 @@ List<int> _extractZeroHitLines(List<int> hits) {
     for (var i = 0; i < hits.length; i += 2)
       if (hits[i + 1] == 0) hits[i],
   ];
+}
+
+/// Evaluates whether a generated test file has successfully improved code
+/// coverage for a specific declaration.
+///
+/// This function runs test after a new test has been generated and compares
+/// the current coverage metrics against the baseline coverage metrics that were
+/// recorded before test generation. It determines if the newly generated test
+/// is actually hitting the previously uncovered lines.
+Future<bool> validateTestCoverageImprovement(
+  String packageDir,
+  Declaration declaration,
+  int baselineUncoveredLines, {
+  required Set<String> scopeOutput,
+  required Map<String, List<Declaration>> declarationsByFile,
+}) async {
+  final coverage = await runTestsAndCollectCoverage(
+    packageDir,
+    scopeOutput: scopeOutput,
+  );
+  final coverageByFile = formatCoverage(coverage);
+
+  final untestedDeclarations = extractUntestedDeclarations(
+    declarationsByFile,
+    coverageByFile,
+  );
+
+  final currentStatus =
+      untestedDeclarations.where((d) => d.$1.id == declaration.id).firstOrNull;
+
+  final currentUncoveredLines = currentStatus?.$2.length ?? 0;
+
+  print(
+    '📊 Coverage analysis for ${declaration.name}:\n'
+    '   • Baseline uncovered lines: $baselineUncoveredLines\n'
+    '   • Current uncovered lines: $currentUncoveredLines\n'
+    '   • Coverage improved: ${currentUncoveredLines < baselineUncoveredLines}',
+  );
+  return currentUncoveredLines < baselineUncoveredLines;
 }
