@@ -6,6 +6,7 @@ import 'package:benchmark_harness/benchmark_harness.dart';
 import 'package:google_generative_ai/google_generative_ai.dart';
 import 'package:testgen/src/LLM/context_generator.dart';
 import 'package:testgen/src/LLM/llm.dart';
+import 'package:testgen/src/LLM/test_file.dart';
 import 'package:testgen/src/analyzer/declaration.dart';
 import 'package:testgen/src/analyzer/extractor.dart';
 import 'package:testgen/src/coverage/coverage_collection.dart';
@@ -19,6 +20,10 @@ class BenchmarkResult {
   final int successfulTests;
   final int failedTests;
   final int skippedTests;
+  final double averageTokenCount;
+  final int minTokenCount;
+  final int maxTokenCount;
+  final int p90TokenCount;
 
   BenchmarkResult({
     required this.testName,
@@ -26,6 +31,10 @@ class BenchmarkResult {
     required this.successfulTests,
     required this.failedTests,
     required this.skippedTests,
+    required this.averageTokenCount,
+    required this.minTokenCount,
+    required this.maxTokenCount,
+    required this.p90TokenCount,
   });
 
   int get totalTests => successfulTests + failedTests + skippedTests;
@@ -33,12 +42,16 @@ class BenchmarkResult {
 
   Map<String, dynamic> toJson() => {
     'testName': testName,
-    'executionTime': executionTime,
+    'totalDeclarationsInTest': totalTests,
+    'executionTimeInSecs': executionTime / 1_000_000, // Convert to seconds
+    'successRate': successRate,
     'successfulTests': successfulTests,
     'failedTests': failedTests,
     'skippedTests': skippedTests,
-    'totalTests': totalTests,
-    'successRate': successRate,
+    'averageTokenCount': averageTokenCount,
+    'minTokenCount': minTokenCount,
+    'maxTokenCount': maxTokenCount,
+    'p90TokenCount': p90TokenCount,
   };
 }
 
@@ -67,67 +80,25 @@ class BenchmarkResultsCollector {
     await file.parent.create(recursive: true);
     await file.writeAsString(JsonEncoder.withIndent('  ').convert(resultsData));
   }
-
-  void printSummary() {
-    if (_results.isEmpty) {
-      print('No benchmark results to summarize.');
-      return;
-    }
-
-    final totalTime = _results
-        .map((r) => r.executionTime)
-        .reduce((a, b) => a + b);
-    final avgTime = totalTime / _results.length;
-    final totalSuccessful = _results
-        .map((r) => r.successfulTests)
-        .reduce((a, b) => a + b);
-    final totalFailed = _results
-        .map((r) => r.failedTests)
-        .reduce((a, b) => a + b);
-    final totalSkipped = _results
-        .map((r) => r.skippedTests)
-        .reduce((a, b) => a + b);
-    final overallSuccessRate =
-        (totalSuccessful + totalFailed + totalSkipped) > 0
-            ? totalSuccessful / (totalSuccessful + totalFailed + totalSkipped)
-            : 0.0;
-
-    print('\n${'=' * 60}');
-    print('BENCHMARK SUMMARY');
-    print('=' * 60);
-    print('Total benchmark runs: ${_results.length}');
-    print('Average execution time: ${avgTime.toStringAsFixed(2)}ms');
-    print(
-      'Total tests generated: ${totalSuccessful + totalFailed}',
-    );
-    print('Successful tests: $totalSuccessful');
-    print('Failed tests: $totalFailed');
-    print('Skipped tests: $totalSkipped');
-    print(
-      'Overall success rate: ${(overallSuccessRate * 100).toStringAsFixed(1)}%',
-    );
-    print('=' * 60);
-  }
 }
 
 class TestGenBenchmark extends AsyncBenchmarkBase {
   final String packagePath;
   final GenerativeModel model;
   final int contextDepth;
-  final bool effectiveTestsOnly;
   final Map<String, List<Declaration>> declarationsByFile;
   final List<(Declaration declaration, List<int> lines)> declarationsToProcess;
-
-  int failedTests = 0;
-  int successfulTests = 0;
-  int skippedTests = 0;
+  final Map<
+    int,
+    (TestStatus status, ChatSession chat, TestFile testFileManager)
+  >
+  _results = {};
 
   TestGenBenchmark(
     super.name, {
     required this.packagePath,
     required this.model,
     required this.contextDepth,
-    required this.effectiveTestsOnly,
     required this.declarationsByFile,
     required this.declarationsToProcess,
   });
@@ -142,69 +113,81 @@ class TestGenBenchmark extends AsyncBenchmarkBase {
       );
       final contextCode = formatContext(contextMap);
 
-      final (status, chat, testFileManager) = await generateTestFile(
+      _results[declaration.id] = await generateTestFile(
         model,
         toBeTestedCode,
         contextCode,
         packagePath,
         '${declaration.name}_${declaration.id}_test.dart',
       );
-
-      if (status == TestStatus.created) {
-        successfulTests++;
-        if (effectiveTestsOnly) {
-          final isImproved = await validateTestCoverageImprovement(
-            packagePath,
-            declaration,
-            lines.length,
-            scopeOutput: {path.basename(packagePath)},
-            declarationsByFile: declarationsByFile,
-          );
-          if (isImproved) {
-            print('✅ Test improved coverage for ${declaration.name}.');
-          } else {
-            print(
-              '❌ Test did not improve coverage for ${declaration.name}. '
-              'Deleting test file.',
-            );
-            testFileManager.deleteTest();
-          }
-        } else {
-          print('✅ Test generated for ${declaration.name}.');
-        }
-      }
-      status == TestStatus.skipped ? skippedTests++ : failedTests++;
     }
   }
 
   @override
   Future<void> teardown() async {
-    final testDir = Directory('$packagePath/test/testgen');
-    if (await testDir.exists()) {
-      await for (final entity in testDir.list()) {
-        if (entity is File && entity.path.contains('_test.dart')) {
-          await entity.delete();
-        }
-      }
+    final testDir = Directory(path.join(packagePath, 'test', 'testgen'));
+    if (!await testDir.exists()) return;
+
+    final testFiles = testDir.listSync().whereType<File>().where(
+      (file) => file.path.contains('_test.dart'),
+    );
+    for (final file in testFiles) {
+      await file.delete();
     }
   }
 
   @override
   Future<void> report() async {
     double time = await measure();
-    final result = BenchmarkResult(
-      testName: name,
-      executionTime: time,
-      successfulTests: successfulTests,
-      failedTests: failedTests,
-      skippedTests: skippedTests,
+    emitter.emit(name, time);
+
+    int successfulTests = 0;
+    int failedTests = 0;
+    int skippedTests = 0;
+    final List<int> tokenCounts = [];
+
+    for (final entry in _results.entries) {
+      final (status, chat, _) = entry.value;
+
+      switch (status) {
+        case TestStatus.created:
+          successfulTests++;
+          break;
+        case TestStatus.skipped:
+          skippedTests++;
+          break;
+        default:
+          failedTests++;
+      }
+
+      tokenCounts.add(await getTokenCount(model, chat));
+    }
+
+    tokenCounts.sort();
+    final total = tokenCounts.reduce((a, b) => a + b).toDouble();
+    final average = total / tokenCounts.length;
+    final p90Index = (tokenCounts.length * 0.9).ceil() - 1;
+    final p90 = tokenCounts[p90Index.clamp(0, tokenCounts.length - 1)];
+
+    benchmarkResults.addResult(
+      BenchmarkResult(
+        testName: name,
+        executionTime: time,
+        successfulTests: successfulTests,
+        failedTests: failedTests,
+        skippedTests: skippedTests,
+        averageTokenCount: average,
+        minTokenCount: tokenCounts.first,
+        maxTokenCount: tokenCounts.last,
+        p90TokenCount: p90,
+      ),
     );
-    benchmarkResults.addResult(result);
   }
 }
 
 void main() async {
   final apiKey = Platform.environment['GEMINI_API_KEY'] ?? '';
+  final maxDeclarationsToProcess = 10;
   final models = [
     'gemini-2.5-pro',
     'gemini-2.5-flash',
@@ -223,45 +206,43 @@ void main() async {
           .map((dir) => dir.absolute.path)
           .toList();
 
-  for (final model in models) {
-    for (final contextDepth in contextDepths) {
-      for (final packagePath in availablePackagePaths) {
-        final packageName = path.basename(packagePath);
-        final coverage = await runTestsAndCollectCoverage(
-          packagePath,
-          scopeOutput: {packageName},
-        );
-        final coverageByFile = formatCoverage(coverage);
+  for (final packagePath in availablePackagePaths) {
+    final packageName = path.basename(packagePath);
+    final coverage = await runTestsAndCollectCoverage(
+      packagePath,
+      scopeOutput: {packageName},
+    );
+    final coverageByFile = formatCoverage(coverage);
 
-        final declarations = await extractDeclarations(
-          packagePath,
-          packageName,
-        );
-        final declarationsByFile = <String, List<Declaration>>{};
-        for (final declaration in declarations) {
-          declarationsByFile
-              .putIfAbsent(declaration.path, () => [])
-              .add(declaration);
-        }
+    final declarations = await extractDeclarations(packagePath, packageName);
+    final declarationsByFile = <String, List<Declaration>>{};
+    for (final declaration in declarations) {
+      declarationsByFile
+          .putIfAbsent(declaration.path, () => [])
+          .add(declaration);
+    }
 
-        final untestedDeclarations = extractUntestedDeclarations(
-          declarationsByFile,
-          coverageByFile,
-        );
-        final declarationsToProcess =
-            (untestedDeclarations..shuffle(Random(42))).take(1).toList();
+    final untestedDeclarations = extractUntestedDeclarations(
+      declarationsByFile,
+      coverageByFile,
+    );
+    final declarationsToProcess =
+        (untestedDeclarations..shuffle(Random(32)))
+            .take(maxDeclarationsToProcess)
+            .toList();
 
-        await Process.run('dart', [
-          'pub',
-          'add',
-          'test',
-        ], workingDirectory: packagePath);
+    await Process.run('dart', [
+      'pub',
+      'add',
+      'test',
+    ], workingDirectory: packagePath);
 
+    for (final model in models) {
+      for (final contextDepth in contextDepths) {
         await TestGenBenchmark(
-          'TestGen-$packageName - $model - ctx$contextDepth',
+          'pkg:$packageName|model:$model|ctx:$contextDepth',
           packagePath: packagePath,
           model: createModel(model: model, apiKey: apiKey),
-          effectiveTestsOnly: false,
           contextDepth: contextDepth,
           declarationsByFile: declarationsByFile,
           declarationsToProcess: declarationsToProcess,
@@ -271,8 +252,8 @@ void main() async {
       }
     }
   }
+
   await benchmarkResults.saveToFile('results.json');
-  benchmarkResults.printSummary();
 
   exit(0);
 }
