@@ -208,30 +208,24 @@ List<int> _markAllLinesAsUntested(String filePath) {
 ///   - The first element is the package path of a Dart source file.
 ///   - The second element is a list of line numbers in that file which were
 ///     not hit by any test case (i.e., lines that require additional testing).
-CoverageData formatCoverage(Map<String, dynamic> coverageResults) {
+Future<CoverageData> formatCoverage(
+  Map<String, dynamic> coverageResults,
+  String packageDir,
+) async {
   final List<Map<String, dynamic>> coverage = coverageResults['coverage'];
-  final coveragePerFile = <String, Set<int>>{};
-
-  // Eliminate duplicates from coverage results
-  for (final {'source': String source, 'hits': List<int> hits} in coverage) {
-    if (source.isEmpty || hits.isEmpty) continue;
-
-    coveragePerFile
-        .putIfAbsent(source, () => {})
-        .addAll(_extractZeroHitLines(hits));
-  }
-
-  return [
-    for (final MapEntry(:key, :value) in coveragePerFile.entries)
-      if (value.isNotEmpty) (key, value.toList()),
-  ];
-}
-
-List<int> _extractZeroHitLines(List<int> hits) {
-  return [
-    for (var i = 0; i < hits.length; i += 2)
-      if (hits[i + 1] == 0) hits[i],
-  ];
+  final hitmaps = await HitMap.parseJson(coverage, packagePath: packageDir);
+  return hitmaps.entries
+      .map(
+        (fileHits) => (
+          fileHits.key,
+          fileHits.value.lineHits.entries
+              .where((lineHit) => lineHit.value == 0)
+              .map((lineHit) => lineHit.key)
+              .toList(),
+        ),
+      )
+      .where((fileHits) => fileHits.$2.isNotEmpty)
+      .toList();
 }
 
 /// Evaluates whether a generated test file has successfully improved code
@@ -252,7 +246,7 @@ Future<bool> validateTestCoverageImprovement(
     packageDir,
     scopeOutput: scopeOutput,
   );
-  final coverageByFile = formatCoverage(coverage);
+  final coverageByFile = await formatCoverage(coverage, packageDir);
 
   final untestedDeclarations = extractUntestedDeclarations(
     declarationsByFile,
