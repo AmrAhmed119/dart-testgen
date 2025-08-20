@@ -227,7 +227,7 @@ void main() async {
       coverageByFile,
     );
     final declarationsToProcess =
-        (untestedDeclarations..shuffle(Random(32)))
+        (untestedDeclarations..shuffle(Random()))
             .take(maxDeclarationsToProcess)
             .toList();
 
