@@ -161,7 +161,7 @@ Future<void> main(List<String> arguments) async {
     functionCoverage: flags.functionCoverage,
     scopeOutput: flags.scopeOutput,
   );
-  final coverageByFile = formatCoverage(coverage);
+  final coverageByFile = await formatCoverage(coverage, flags.package);
 
   final declarations = await extractDeclarations(
     flags.package,
