@@ -212,7 +212,7 @@ void main() async {
       packagePath,
       scopeOutput: {packageName},
     );
-    final coverageByFile = formatCoverage(coverage);
+    final coverageByFile = await formatCoverage(coverage, packagePath);
 
     final declarations = await extractDeclarations(packagePath, packageName);
     final declarationsByFile = <String, List<Declaration>>{};
