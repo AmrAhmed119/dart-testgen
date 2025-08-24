@@ -192,7 +192,7 @@ Future<void> main(List<String> arguments) async {
     print('${untestedDeclarations.length - done} remaining');
     done++;
     final toBeTestedCode = formatUntestedCode(declaration, lines);
-    final contextMap = generateContextForDeclaration(declaration, maxDepth: 5);
+    final contextMap = buildDependencyContext(declaration, maxDepth: 5);
     final contextCode = formatContext(contextMap);
 
     final (status, chat, testFileManager) = await generateTestFile(

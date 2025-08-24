@@ -23,7 +23,7 @@ void main() {
 
   group('Test Context for method4', () {
     test('Test context of method4 at depth 1', () {
-      final context = generateContextForDeclaration(decls['method4']!);
+      final context = buildDependencyContext(decls['method4']!);
       final formattedContext = formatContext(context);
       expect(
         formattedContext,

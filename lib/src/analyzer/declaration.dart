@@ -56,6 +56,8 @@ class Declaration {
     dependsOn.add(declaration);
   }
 
+  String toCode() => sourceCode.join('\n');
+
   /// Returns a Graphviz DOT format representation of this declaration.
   String toGraphviz() {
     final buffer = StringBuffer();

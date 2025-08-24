@@ -23,7 +23,7 @@ void main() {
 
   group('Test Context for func2 and func3', () {
     test('Test Context of func2 at depth 1', () {
-      final context = generateContextForDeclaration(decls['func2']!);
+      final context = buildDependencyContext(decls['func2']!);
       final formattedContext = formatContext(context);
       expect(
         formattedContext,
@@ -86,7 +86,7 @@ int method2() => 3;
     });
 
     test('Test Context of func3', () {
-      final context = generateContextForDeclaration(decls['func3']!);
+      final context = buildDependencyContext(decls['func3']!);
       final formattedContext = formatContext(context);
       expect(
         formattedContext,

@@ -107,7 +107,7 @@ class TestGenBenchmark extends AsyncBenchmarkBase {
   Future<void> run() async {
     for (final (declaration, lines) in declarationsToProcess) {
       final toBeTestedCode = formatUntestedCode(declaration, lines);
-      final contextMap = generateContextForDeclaration(
+      final contextMap = buildDependencyContext(
         declaration,
         maxDepth: contextDepth,
       );

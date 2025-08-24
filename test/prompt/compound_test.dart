@@ -23,7 +23,7 @@ void main() {
 
   group('Test Context for ExtensionType', () {
     test('Test Context of ExtensionType at depth 1', () {
-      final context = generateContextForDeclaration(decls['ExtensionType']!);
+      final context = buildDependencyContext(decls['ExtensionType']!);
       final formattedContext = formatContext(context);
       expect(
         formattedContext,
@@ -47,7 +47,7 @@ class Class2 extends Class1
     });
 
     test('Test Context of ExtensionType at depth 2', () {
-      final context = generateContextForDeclaration(
+      final context = buildDependencyContext(
         decls['ExtensionType']!,
         maxDepth: 2,
       );
