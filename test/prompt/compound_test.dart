@@ -28,16 +28,16 @@ void main() {
       expect(
         formattedContext,
         equals('''
-// Code Snippet package path: package:testgen/..
+// Code Snippet package path: null
 class Class1 { 
 
-// Code Snippet package path: package:testgen/..
+// Code Snippet package path: null
 abstract class Abstract1 { 
 
-// Code Snippet package path: package:testgen/..
+// Code Snippet package path: null
 abstract class Abstract2 { 
 
-// Code Snippet package path: package:testgen/..
+// Code Snippet package path: null
 class Class2 extends Class1
     with Mixin1, Mixin2
     implements Abstract1, Abstract2 { 
@@ -55,24 +55,24 @@ class Class2 extends Class1
       expect(
         formattedContext,
         equals('''
-// Code Snippet package path: package:testgen/..
+// Code Snippet package path: null
 class Class1 { 
 
-// Code Snippet package path: package:testgen/..
+// Code Snippet package path: null
 abstract class Abstract1 { 
 
-// Code Snippet package path: package:testgen/..
+// Code Snippet package path: null
 abstract class Abstract2 { 
 
-// Code Snippet package path: package:testgen/..
+// Code Snippet package path: null
 class Class2 extends Class1
     with Mixin1, Mixin2
     implements Abstract1, Abstract2 { 
 
-// Code Snippet package path: package:testgen/..
+// Code Snippet package path: null
 mixin Mixin1 { 
 
-// Code Snippet package path: package:testgen/..
+// Code Snippet package path: null
 mixin Mixin2 { 
 
 '''),

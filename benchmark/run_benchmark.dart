@@ -214,7 +214,7 @@ void main() async {
     );
     final coverageByFile = await formatCoverage(coverage, packagePath);
 
-    final declarations = await extractDeclarations(packagePath, packageName);
+    final declarations = await extractDeclarations(packagePath);
     final declarationsByFile = <String, List<Declaration>>{};
     for (final declaration in declarations) {
       declarationsByFile

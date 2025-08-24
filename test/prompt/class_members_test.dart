@@ -28,13 +28,13 @@ void main() {
       expect(
         formattedContext,
         equals('''
-// Code Snippet package path: package:testgen/..
+// Code Snippet package path: null
 int globalVar1 = 30; 
 
-// Code Snippet package path: package:testgen/..
+// Code Snippet package path: null
 void globalFunc(int x) {} 
 
-// Code Snippet package path: package:testgen/..
+// Code Snippet package path: null
 enum Enum { 
 
 // rest of the code... 
@@ -45,7 +45,7 @@ value1(0)
 
 } 
 
-// Code Snippet package path: package:testgen/..
+// Code Snippet package path: null
 mixin Logger { 
 
 // rest of the code... 
@@ -56,7 +56,7 @@ void log(String msg) {}
 
 } 
 
-// Code Snippet package path: package:testgen/..
+// Code Snippet package path: null
 class Class1 { 
 
 // rest of the code... 
@@ -69,7 +69,7 @@ void method1() {}
 
 } 
 
-// Code Snippet package path: package:testgen/..
+// Code Snippet package path: null
 extension StringExtension on String { 
 
 // rest of the code... 
@@ -80,7 +80,7 @@ void method2() {}
 
 } 
 
-// Code Snippet package path: package:testgen/..
+// Code Snippet package path: null
 class Class2 extends Class1 with Logger { 
 
 // rest of the code... 
@@ -104,7 +104,7 @@ set field3(int i) => _field3 = i;
       expect(
         code,
         equals('''
-// Code Snippet package path: package:testgen/..
+// Code Snippet package path: null
 class Class2 extends Class1 with Logger {
 
 void method4() {

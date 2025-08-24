@@ -163,10 +163,7 @@ Future<void> main(List<String> arguments) async {
   );
   final coverageByFile = await formatCoverage(coverage, flags.package);
 
-  final declarations = await extractDeclarations(
-    flags.package,
-    flags.scopeOutput.first,
-  );
+  final declarations = await extractDeclarations(flags.package);
 
   final Map<String, List<Declaration>> declarationsByFile = {};
   for (final declaration in declarations) {

@@ -1,17 +1,24 @@
-/// Represents a code declaration (such as a class, function, or variable)
-/// within a source file.
+/// Represents a code declaration extracted from Dart source files during
+/// static analysis.
 ///
-/// This class stores metadata about the declaration, including:
-/// - A unique [id] for the declaration.
-/// - The [name] of the declaration.
-/// - The [sourceCode] lines for the declaration.
-/// - The source file [path] where the declaration is found.
-/// - The line range ([startLine] to [endLine]) in the file.
-/// - An optional [parent] declaration (for nested structures,
-///   e.g., methods inside a class).
-/// - A set of [dependsOn] declarations that this declaration depends on.
+/// This is the fundamental unit used by testgen to track code elements
+/// (classes, functions, methods, variables, etc.) and their dependency
+/// relationships.
 ///
-/// This structure enables tracking of code elements and their relationships.
+/// Each declaration contains the necessary metadata for dependency resolution,
+/// coverage analysis, and LLM-based test generation.
+///
+/// Example usage:
+/// ```dart
+/// final declaration = Declaration(
+///   42,
+///   name: 'calculateSum',
+///   sourceCode: ['int calculateSum(int a, int b) {', '  return a + b;', '}'],
+///   startLine: 15,
+///   endLine: 17,
+///   path: 'package:testgen/src/analyzer/declaration.dart',
+/// );
+/// ```
 class Declaration {
   Declaration(
     this.id, {
@@ -23,20 +30,24 @@ class Declaration {
     this.parent,
   });
 
+  /// Unique ID extracted from analyzer package element IDs.
   final int id;
 
+  /// The declared identifier name.
   final String name;
 
-  /// Lines of source code for the declaration (inlcuding comments,
-  /// annotations, and the code itself).
+  /// Source lines of this declaration, including any comments and annotations.
   final List<String> sourceCode;
 
   final int startLine;
 
   final int endLine;
 
+  /// File path represented in Dart package URI format
+  /// (e.g. package:my_pkg/src/file.dart).
   final String path;
 
+  /// Parent declaration for nested elements (e.g., method inside a class).
   final Declaration? parent;
 
   final Set<Declaration> dependsOn = {};
@@ -116,7 +127,7 @@ Declaration(
   startLine: $startLine,
   endLine: $endLine,
   parent: ${parent?.name ?? 'null'},
-  dependsOn: $dependsOn
+  dependsOn: [${dependsOn.map((d) => '${d.name}_${d.id}').join(', ')}]
 )''';
   }
 }
