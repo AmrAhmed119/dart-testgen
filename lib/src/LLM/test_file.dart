@@ -18,6 +18,7 @@ class TestFile {
     : testFilePath = path.join(packagePath, 'test', 'testgen', fileName);
 
   Future<void> writeTest(String content) async {
+    print('[TestFile] Writing test file to $testFilePath');
     final testFile = File(testFilePath);
     final directory = testFile.parent;
     if (!await directory.exists()) {
@@ -31,6 +32,7 @@ class TestFile {
   }
 
   Future<void> deleteTest() async {
+    print('[TestFile] Deleting test file at $testFilePath');
     final testFile = File(testFilePath);
     if (await testFile.exists()) {
       await testFile.delete();

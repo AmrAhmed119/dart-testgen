@@ -40,6 +40,7 @@ final class AnalysisValidator implements Validator {
     TestFile testFile,
     PromptGenerator promptGen,
   ) async {
+    print('[Validator] Running static analysis...');
     final errors = await testFile.runAnalyzer();
     final hasErrors = errors != null;
 
@@ -57,6 +58,7 @@ final class TestExecutionValidator implements Validator {
     TestFile testFile,
     PromptGenerator promptGen,
   ) async {
+    print('[Validator] Running test execution...');
     final errors = await testFile.runTest();
     final hasErrors = errors != null;
 
@@ -74,6 +76,7 @@ final class FormatValidator implements Validator {
     TestFile testFile,
     PromptGenerator promptGen,
   ) async {
+    print('[Validator] Running code formatter...');
     final errors = await testFile.runFormat();
     final hasErrors = errors != null;
 
@@ -101,6 +104,7 @@ final class CoverageValidator implements Validator {
 
   @override
   Future<ValidationResult> validate(_, _) async {
+    print('[Validator] Running coverage validation...');
     final isImproved = await validateTestCoverageImprovement(
       declaration: declaration,
       baselineUncoveredLines: untestedLines,

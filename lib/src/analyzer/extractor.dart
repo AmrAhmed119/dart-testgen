@@ -19,6 +19,7 @@ import 'package:testgen/src/coverage/coverage_collection.dart';
 ///
 /// Returns a [Future] containing all discovered [Declaration]s.
 Future<List<Declaration>> extractDeclarations(String path) async {
+  print('[Analyzer] Extracting declarations from $path');
   final collection = AnalysisContextCollection(includedPaths: [path]);
 
   final dartFiles = <String>[];

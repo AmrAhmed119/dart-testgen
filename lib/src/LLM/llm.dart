@@ -118,7 +118,9 @@ Future<(TestStatus, ChatSession)> generateTestFile({
   int attempt = 0;
   while (attempt < maxRetries) {
     attempt++;
-
+    print(
+      '[LLM] Attempt $attempt / $maxRetries to generate test for $fileName',
+    );
     try {
       final response = await chat.sendMessage(Content.text(prompt));
       if (response.text == null) {
@@ -129,6 +131,7 @@ Future<(TestStatus, ChatSession)> generateTestFile({
       final result = LLMResponse.fromJson(jsonDecode(response.text!));
 
       if (!result.needTesting) {
+        print('[LLM] No significant logic to test in $fileName. Skipping.');
         status = TestStatus.skipped;
         break;
       }
@@ -139,6 +142,7 @@ Future<(TestStatus, ChatSession)> generateTestFile({
       for (final check in validators) {
         final checkResult = await check.validate(testFileManager, promptGen);
         if (!checkResult.isPassed) {
+          print('[Validator] Check failed.');
           prompt = checkResult.recoveryPrompt!;
           allChecksPassed = false;
           break;
@@ -165,10 +169,12 @@ Future<(TestStatus, ChatSession)> generateTestFile({
       if (errorMessage.contains('rate limit exceeded') ||
           errorMessage.contains('you exceeded your current quota')) {
         await Future.delayed(backoff);
+        print('[LLM] Rate limit exceeded, retrying in $backoff...');
         backoff *= 2;
         continue;
       }
 
+      print('[LLM] Error encountered');
       prompt = promptGen.fixError(errorMessage);
     }
   }

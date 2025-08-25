@@ -76,6 +76,7 @@ Future<Map<String, dynamic>> runTestsAndCollectCoverage(
   bool functionCoverage = false,
   required Set<String> scopeOutput,
 }) async {
+  print('[Coverage] Running tests and collecting coverage...');
   if (!_isSignalsWatched) {
     _watchExitSignal(ProcessSignal.sighup);
     _watchExitSignal(ProcessSignal.sigint);
@@ -245,12 +246,13 @@ Future<bool> validateTestCoverageImprovement({
       currentUncoveredLines++;
     }
   }
-
   print(
-    '📊 Coverage analysis for ${declaration.name}:\n'
-    '   • Baseline uncovered lines: $baselineUncoveredLines\n'
-    '   • Current uncovered lines: $currentUncoveredLines\n'
-    '   • Coverage improved: ${currentUncoveredLines < baselineUncoveredLines}',
+    '[Coverage] Validating coverage improvement for ${declaration.name}...',
+  );
+  print('[Coverage] Baseline uncovered lines: $baselineUncoveredLines');
+  print('[Coverage] Current uncovered lines: $currentUncoveredLines');
+  print(
+    '[Coverage] Coverage improved: ${currentUncoveredLines < baselineUncoveredLines}',
   );
 
   return currentUncoveredLines < baselineUncoveredLines;

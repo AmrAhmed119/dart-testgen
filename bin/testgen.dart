@@ -190,7 +190,10 @@ Future<void> main(List<String> arguments) async {
 
   int done = 0;
   for (final (declaration, lines) in untestedDeclarations) {
-    print('${untestedDeclarations.length - done} remaining');
+    print(
+      '[testgen] Generating tests for ${declaration.name}, remaining: '
+      '${untestedDeclarations.length - done}',
+    );
     done++;
     final toBeTestedCode = formatUntestedCode(declaration, lines);
     final contextMap = buildDependencyContext(declaration, maxDepth: 5);
@@ -212,9 +215,10 @@ Future<void> main(List<String> arguments) async {
               )
               : null,
     );
-    print(status);
     final tokens = await countTokens(model, chat);
-    print(tokens);
+    print(
+      '[testgen] Test generation ended with $status and used $tokens tokens.\n',
+    );
   }
 
   exit(0);
