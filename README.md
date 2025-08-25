@@ -16,21 +16,81 @@ know whether this package might be useful for them.
 
 ## Features
 
-TODO: List what your package can do. Maybe include images, gifs, or videos.
+- **Automated Test Generation**: Leverages Google's Gemini AI to generate comprehensive unit tests for Dart code
+- **Coverage-Driven Analysis**: Integrates with `package:coverage` to identify untested code paths
+- **Dependency-Aware Context**: Builds dependency graphs to provide relevant context for test generation
+- **Enhanced Workflow Logging**: Structured logging with component prefixes (`[testgen]`, `[LLM]`, `[Coverage]`, `[Validator]`) for better debugging and progress tracking
+- **Iterative Test Refinement**: Uses static analysis and test execution feedback to improve generated tests
+- **Configurable AI Models**: Supports multiple Gemini model variants (pro, flash, flash-lite)
+- **Effective Test Validation**: Optional coverage validation ensures generated tests actually improve code coverage
 
 ## Getting started
 
-TODO: List prerequisites and provide or point to information on how to
-start using the package.
+### Prerequisites
+- Dart SDK 3.7.3 or later
+- Google Gemini API key
+
+### Installation
+1. Clone the repository
+2. Install dependencies: `dart pub get`
+3. Set your Gemini API key: `export GEMINI_API_KEY="your_api_key_here"`
+
+### Basic Usage
+```bash
+# Generate tests for the current package
+dart run bin/testgen.dart
+
+# Use a specific model and enable coverage validation
+dart run bin/testgen.dart --model=gemini-2.5-flash --effective-tests-only
+
+# Enable verbose logging and branch coverage
+dart run bin/testgen.dart --branch-coverage --function-coverage
+```
+
+### Example Output
+The enhanced logging provides clear visibility into the process:
+```
+[testgen] Generating tests for UserService, remaining: 3
+[Coverage] Running tests and collecting coverage...
+[LLM] Generating test code for UserService...
+[Validator] Validating generated test code...
+[testgen] Test generation ended with created and used 1247 tokens.
+```
 
 ## Usage
 
-TODO: Include short and useful examples for package users. Add longer examples
-to `/example` folder. 
+### Command Line Options
+
+```bash
+dart run bin/testgen.dart [options]
+```
+
+**Options:**
+- `--package`: Root directory of the package to test (default: current directory)
+- `--model`: Gemini model to use (default: gemini-2.5-pro)
+- `--api-key`: Gemini API key (or set GEMINI_API_KEY environment variable)
+- `--effective-tests-only`: Only generate tests that improve coverage
+- `--branch-coverage`: Collect branch coverage information
+- `--function-coverage`: Collect function coverage information
+- `--scope-output`: Restrict coverage to specific package paths
+
+### Logging Features
+
+The enhanced logging system provides structured output with clear component identification:
+
+- **`[testgen]`**: Main workflow progress and completion status
+- **`[Coverage]`**: Test execution and coverage analysis
+- **`[LLM]`**: AI model interactions and responses  
+- **`[Validator]`**: Test validation and verification
+
+### Example Workflow
 
 ```dart
-const like = 'sample';
+// See example/logging_demo.dart for a complete demonstration
+// Run: dart run example/logging_demo.dart
 ```
+
+This will show you exactly how the logging system works during test generation.
 
 ## Additional information
 
