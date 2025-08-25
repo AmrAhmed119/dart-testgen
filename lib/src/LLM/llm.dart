@@ -131,7 +131,7 @@ Future<(TestStatus, ChatSession, TestFile)> generateTestFile(
       }
 
       print('\t Writing generated test to file');
-      await testFileManager.writeTest(result.code, result.comments);
+      await testFileManager.writeTest(result.code);
 
       print('\t Analyzing generated test code');
       final analyzerErrors = await testFileManager.runAnalyzer(result.code);
@@ -152,7 +152,7 @@ Future<(TestStatus, ChatSession, TestFile)> generateTestFile(
       }
 
       print('\t Formatting test file');
-      await testFileManager.formatTest();
+      await testFileManager.runFormat();
 
       print('\t ✅ Test generated successfully!');
       status = TestStatus.created;
