@@ -4,6 +4,7 @@ import 'package:args/args.dart';
 import 'package:path/path.dart' as path;
 import 'package:testgen/src/LLM/context_generator.dart';
 import 'package:testgen/src/LLM/llm.dart';
+import 'package:testgen/src/LLM/validator.dart';
 import 'package:testgen/src/analyzer/declaration.dart';
 import 'package:testgen/src/analyzer/extractor.dart';
 import 'package:testgen/src/coverage/coverage_collection.dart';
@@ -195,33 +196,25 @@ Future<void> main(List<String> arguments) async {
     final contextMap = buildDependencyContext(declaration, maxDepth: 5);
     final contextCode = formatContext(contextMap);
 
-    final (status, chat, testFileManager) = await generateTestFile(
-      model,
-      toBeTestedCode,
-      contextCode,
-      flags.package,
-      '${declaration.name}_${declaration.id}_test.dart',
+    final (status, chat) = await generateTestFile(
+      model: model,
+      toBeTestedCode: toBeTestedCode,
+      contextCode: contextCode,
+      packagePath: flags.package,
+      fileName: '${declaration.name}_${declaration.id}_test.dart',
+      coverageValidator:
+          flags.effectiveTestsOnly
+              ? CoverageValidator(
+                declaration,
+                lines.length,
+                flags.package,
+                flags.scopeOutput.first,
+              )
+              : null,
     );
-    if (status == TestStatus.created) {
-      if (flags.effectiveTestsOnly) {
-        final isImproved = await validateTestCoverageImprovement(
-          flags.package,
-          declaration,
-          lines.length,
-          scopeOutput: flags.scopeOutput,
-          declarationsByFile: declarationsByFile,
-        );
-        if (isImproved) {
-          print('✅ Test improved coverage for ${declaration.name}.');
-        } else {
-          print(
-            '❌ Test did not improve coverage for ${declaration.name}. '
-            'Deleting test file.',
-          );
-          testFileManager.deleteTest();
-        }
-      }
-    }
+    print(status);
+    final tokens = await countTokens(model, chat);
+    print(tokens);
   }
 
   exit(0);

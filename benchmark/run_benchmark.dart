@@ -6,7 +6,6 @@ import 'package:benchmark_harness/benchmark_harness.dart';
 import 'package:google_generative_ai/google_generative_ai.dart';
 import 'package:testgen/src/LLM/context_generator.dart';
 import 'package:testgen/src/LLM/llm.dart';
-import 'package:testgen/src/LLM/test_file.dart';
 import 'package:testgen/src/analyzer/declaration.dart';
 import 'package:testgen/src/analyzer/extractor.dart';
 import 'package:testgen/src/coverage/coverage_collection.dart';
@@ -88,11 +87,7 @@ class TestGenBenchmark extends AsyncBenchmarkBase {
   final int contextDepth;
   final Map<String, List<Declaration>> declarationsByFile;
   final List<(Declaration declaration, List<int> lines)> declarationsToProcess;
-  final Map<
-    int,
-    (TestStatus status, ChatSession chat, TestFile testFileManager)
-  >
-  _results = {};
+  final Map<int, (TestStatus status, ChatSession chat)> _results = {};
 
   TestGenBenchmark(
     super.name, {
@@ -114,11 +109,11 @@ class TestGenBenchmark extends AsyncBenchmarkBase {
       final contextCode = formatContext(contextMap);
 
       _results[declaration.id] = await generateTestFile(
-        model,
-        toBeTestedCode,
-        contextCode,
-        packagePath,
-        '${declaration.name}_${declaration.id}_test.dart',
+        model: model,
+        toBeTestedCode: toBeTestedCode,
+        contextCode: contextCode,
+        packagePath: packagePath,
+        fileName: '${declaration.name}_${declaration.id}_test.dart',
       );
     }
   }
@@ -147,7 +142,7 @@ class TestGenBenchmark extends AsyncBenchmarkBase {
     final List<int> tokenCounts = [];
 
     for (final entry in _results.entries) {
-      final (status, chat, _) = entry.value;
+      final (status, chat) = entry.value;
 
       switch (status) {
         case TestStatus.created:
@@ -160,7 +155,7 @@ class TestGenBenchmark extends AsyncBenchmarkBase {
           failedTests++;
       }
 
-      tokenCounts.add(await getTokenCount(model, chat));
+      tokenCounts.add(await countTokens(model, chat));
     }
 
     tokenCounts.sort();

@@ -7,8 +7,10 @@
 /// Returns formatted strings for LLM use.
 ///
 /// Extend this class to add new prompt types as needed for your workflow.
-abstract class PromptGenerator {
-  static String testCode(String toBeTestedCode, String contextCode) {
+class PromptGenerator {
+  const PromptGenerator();
+
+  String testCode(String toBeTestedCode, String contextCode) {
     return '''
 Generate a Dart unit test for the following code:
 
@@ -37,7 +39,7 @@ Return the complete test file with proper imports and test structure.
 ''';
   }
 
-  static String analysisError(String error) {
+  String analysisError(String error) {
     return '''
 The generated Dart code contains the following analyzer error(s):
 
@@ -47,7 +49,7 @@ Fix these issues and return only the corrected, complete test code that will pas
 ''';
   }
 
-  static String testFailError(String error) {
+  String testFailError(String error) {
     return '''
 The generated test failed with the following error(s):
 
@@ -57,7 +59,17 @@ Fix the test code and return only the corrected, complete test code that will pa
 ''';
   }
 
-  static String fixError(String error) {
+  String formatError(String error) {
+    return '''
+The generated Dart code has formatting issues:
+
+$error
+
+Fix these issues and return only the correctly formatted, complete test code.
+''';
+  }
+
+  String fixError(String error) {
     return '''
 An error occurred during test generation:
 

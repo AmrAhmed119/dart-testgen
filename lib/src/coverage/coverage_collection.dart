@@ -6,7 +6,6 @@ import 'package:package_config/package_config.dart';
 import 'package:path/path.dart' as path;
 import 'package:stack_trace/stack_trace.dart';
 import 'package:testgen/src/analyzer/declaration.dart';
-import 'package:testgen/src/analyzer/extractor.dart';
 import 'package:testgen/src/coverage/util.dart';
 
 typedef CoverageData = List<(String, List<int>)>;
@@ -225,12 +224,11 @@ Future<CoverageData> formatCoverage(
 /// the current coverage metrics against the baseline coverage metrics that were
 /// recorded before test generation. It determines if the newly generated test
 /// is actually hitting the previously uncovered lines.
-Future<bool> validateTestCoverageImprovement(
-  String packageDir,
-  Declaration declaration,
-  int baselineUncoveredLines, {
+Future<bool> validateTestCoverageImprovement({
+  required Declaration declaration,
+  required int baselineUncoveredLines,
+  required String packageDir,
   required Set<String> scopeOutput,
-  required Map<String, List<Declaration>> declarationsByFile,
 }) async {
   final coverage = await runTestsAndCollectCoverage(
     packageDir,
@@ -238,15 +236,15 @@ Future<bool> validateTestCoverageImprovement(
   );
   final coverageByFile = await formatCoverage(coverage, packageDir);
 
-  final untestedDeclarations = extractUntestedDeclarations(
-    declarationsByFile,
-    coverageByFile,
-  );
+  int currentUncoveredLines = 0;
+  final fileCoverage =
+      coverageByFile.where((pair) => pair.$1 == declaration.path).firstOrNull;
 
-  final currentStatus =
-      untestedDeclarations.where((d) => d.$1.id == declaration.id).firstOrNull;
-
-  final currentUncoveredLines = currentStatus?.$2.length ?? 0;
+  for (final line in fileCoverage?.$2 ?? <int>[]) {
+    if (line >= declaration.startLine && line <= declaration.endLine) {
+      currentUncoveredLines++;
+    }
+  }
 
   print(
     '📊 Coverage analysis for ${declaration.name}:\n'
@@ -254,5 +252,6 @@ Future<bool> validateTestCoverageImprovement(
     '   • Current uncovered lines: $currentUncoveredLines\n'
     '   • Coverage improved: ${currentUncoveredLines < baselineUncoveredLines}',
   );
+
   return currentUncoveredLines < baselineUncoveredLines;
 }

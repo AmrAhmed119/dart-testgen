@@ -37,8 +37,9 @@ class TestFile {
     }
   }
 
-  Future<String?> runAnalyzer(String code) async {
-    final result = parseString(content: code);
+  Future<String?> runAnalyzer() async {
+    final content = await File(testFilePath).readAsString();
+    final result = parseString(content: content);
 
     final errors =
         result.errors
@@ -58,10 +59,12 @@ class TestFile {
     return result.exitCode != 0 ? result.stdout.toString() : null;
   }
 
-  Future<void> runFormat() async {
-    await Process.run('dart', [
+  Future<String?> runFormat() async {
+    final result = await Process.run('dart', [
       'format',
       testFilePath,
     ], workingDirectory: packagePath);
+
+    return result.exitCode != 0 ? result.stdout.toString() : null;
   }
 }
