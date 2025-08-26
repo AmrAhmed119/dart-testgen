@@ -90,7 +90,14 @@ Future<Flags> parseArgs(List<String> arguments) async {
 
   void printUsage() {
     print('''
-To Be Updated
+TestGen - LLM-based test generation tool
+
+Generates comprehensive Dart unit tests using LLM (Gemini) for uncovered code.
+
+Analyzes code coverage, identifies untested declarations, and creates targeted
+tests to improve coverage metrics through an iterative validation process.
+
+Usage: testgen [OPTIONS]
 
 ${parser.usage}
 ''');
