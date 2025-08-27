@@ -54,6 +54,17 @@ ArgParser _createArgParser() =>
         help:
             'Gemini API key for authentication (or set GEMINI_API_KEY env var).',
       )
+      ..addOption(
+        'max-depth',
+        defaultsTo: '2',
+        help: 'Maximum dependency depth for context generation.',
+      )
+      ..addOption(
+        'max-attempts',
+        defaultsTo: '5',
+        help:
+            'Maximum number of attempts to generate tests for each declaration on failure.',
+      )
       ..addFlag(
         'effective-tests-only',
         defaultsTo: false,
@@ -72,6 +83,8 @@ class Flags {
     required this.model,
     required this.apiKey,
     required this.effectiveTestsOnly,
+    required this.maxDepth,
+    required this.maxAttempts,
   });
 
   final String package;
@@ -82,6 +95,8 @@ class Flags {
   final String model;
   final String apiKey;
   final bool effectiveTestsOnly;
+  final int maxDepth;
+  final int maxAttempts;
 }
 
 Future<Flags> parseArgs(List<String> arguments) async {
@@ -157,6 +172,8 @@ ${parser.usage}
     model: results['model'] as String,
     apiKey: results['api-key'] as String,
     effectiveTestsOnly: results['effective-tests-only'] as bool,
+    maxDepth: int.parse(results['max-depth'] as String),
+    maxAttempts: int.parse(results['max-attempts'] as String),
   );
 }
 
@@ -203,7 +220,10 @@ Future<void> main(List<String> arguments) async {
     );
     done++;
     final toBeTestedCode = formatUntestedCode(declaration, lines);
-    final contextMap = buildDependencyContext(declaration, maxDepth: 5);
+    final contextMap = buildDependencyContext(
+      declaration,
+      maxDepth: flags.maxDepth,
+    );
     final contextCode = formatContext(contextMap);
 
     final (status, chat) = await generateTestFile(
@@ -212,6 +232,7 @@ Future<void> main(List<String> arguments) async {
       contextCode: contextCode,
       packagePath: flags.package,
       fileName: '${declaration.name}_${declaration.id}_test.dart',
+      maxRetries: flags.maxAttempts,
       coverageValidator:
           flags.effectiveTestsOnly
               ? CoverageValidator(

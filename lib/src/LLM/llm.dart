@@ -106,7 +106,7 @@ Future<(TestStatus, ChatSession)> generateTestFile({
   required String fileName,
   PromptGenerator promptGen = const PromptGenerator(),
   Validator? coverageValidator,
-  int maxRetries = 7,
+  int maxRetries = 5,
   Duration initialBackoff = const Duration(seconds: 1),
 }) async {
   final chat = model.startChat();
