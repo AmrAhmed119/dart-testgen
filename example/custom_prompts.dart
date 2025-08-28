@@ -27,7 +27,7 @@ class CustomPromptGenerator extends PromptGenerator {
 Future<void> main() async {
   // change the packagePath and scopeOutput to your package
   // and modelName to your preferred model
-  
+
   final packagePath = '/home/user/code/yourPackage';
   final scopeOutput = 'yourPackage';
   final modelName = 'gemini-2.5-pro';
