@@ -30,7 +30,7 @@ Future<void> main() async {
   
   final packagePath = '/home/user/code/yourPackage';
   final scopeOutput = 'yourPackage';
-  final modelName = 'gemini-2.5-flash-lite';
+  final modelName = 'gemini-2.5-pro';
 
   final coverage = await runTestsAndCollectCoverage(
     packagePath,
@@ -75,7 +75,7 @@ Future<void> main() async {
         packagePath,
         scopeOutput,
       ),
-      initialBackoff: Duration(seconds: 2),
+      initialBackoff: Duration(seconds: 16),
       maxRetries: 10,
     );
     final tokens = await countTokens(model, chat);

@@ -10,6 +10,11 @@ import 'package:testgen/src/analyzer/extractor.dart';
 import 'package:testgen/src/coverage/coverage_collection.dart';
 import 'package:testgen/src/coverage/util.dart';
 
+const String reset = '\x1b[0m';
+const String red = '\x1b[31m';
+const String green = '\x1b[32m';
+const String yellow = '\x1b[33m';
+
 ArgParser _createArgParser() =>
     ArgParser()
       ..addOption(
@@ -245,7 +250,11 @@ Future<void> main(List<String> arguments) async {
     );
     final tokens = await countTokens(model, chat);
     print(
-      '[testgen] Test generation ended with $status and used $tokens tokens.\n',
+      '[testgen] Test generation ended with ${switch (status) {
+        TestStatus.created => green,
+        TestStatus.skipped => yellow,
+        TestStatus.failed => red,
+      }}$status$reset and used $tokens tokens.\n',
     );
   }
 
