@@ -7,7 +7,7 @@ TestGen is an LLM-based test generation tool that creates comprehensive Dart uni
 - **Coverage-Driven Test Generation**: Automatically identifies untested code lines and generates tests to improve coverage.
 - **Dependency-Aware Context**: Builds a dependency graph across code declarations by analyzing code dependencies to create dependency-aware context for prompting when testing any declaration.
 - **LLM Integration**: Uses Google's Gemini models (Pro, Flash, Flash-Lite) for automated test generation with context-aware prompting.
-- **Iterative Validation**: Validates generated tests through static analysis, execution, formatting, and optional coverage improvement checks.
+- **Iterative Validation**: Validates generated tests through static analysis, execution, formatting, and optional coverage improvement checks with backoff propagation for API errors and rate limits.
 - **Smart Filtering**: Skips trivial code (getters/setters, simple constructors) that doesn't require testing.
 
 ## Getting Started

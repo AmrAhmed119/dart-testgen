@@ -15,7 +15,12 @@ class TestFile {
   final String packagePath;
 
   TestFile(this.packagePath, String fileName)
-    : testFilePath = path.join(packagePath, 'test', 'testgen', fileName);
+    : testFilePath = path.join(
+        packagePath,
+        'test',
+        'testgen',
+        fileName.toLowerCase(),
+      );
 
   Future<void> writeTest(String content) async {
     print('[TestFile] Writing test file to $testFilePath');
