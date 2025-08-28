@@ -4,16 +4,10 @@ import 'package:analyzer/dart/element/element2.dart';
 import 'package:testgen/src/analyzer/declaration.dart';
 
 class DependencyVisitor extends RecursiveAstVisitor<void> {
-  const DependencyVisitor(
-    this.astNode,
-    this.declaration,
-    this.visitedDeclarations,
-    this.dependencies,
-  );
+  const DependencyVisitor(this.astNode, this.declaration, this.dependencies);
 
   final ast.Declaration astNode;
   final Declaration declaration;
-  final Map<int, Declaration> visitedDeclarations;
   final Map<int, List<Declaration>> dependencies;
 
   void _addDependencyById(int? id) {
@@ -70,7 +64,6 @@ class VariableDependencyVisitor extends DependencyVisitor {
   const VariableDependencyVisitor(
     super.astNode,
     super.declaration,
-    super.visitedDeclarations,
     super.dependencies,
   );
 
@@ -102,7 +95,6 @@ class CompoundDependencyVisitor extends DependencyVisitor {
   const CompoundDependencyVisitor(
     super.astNode,
     super.declaration,
-    super.visitedDeclarations,
     super.dependencies,
   );
 

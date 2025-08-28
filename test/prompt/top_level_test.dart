@@ -23,12 +23,12 @@ void main() {
 
   group('Test Context for func2 and func3', () {
     test('Test Context of func2 at depth 1', () {
-      final context = generateContextForDeclaration(decls['func2']!);
+      final context = buildDependencyContext(decls['func2']!);
       final formattedContext = formatContext(context);
       expect(
         formattedContext,
         equals('''
-// Code Snippet package path: package:testgen/..
+// Code Snippet package path: null
 class Class1 { 
 
 // rest of the code... 
@@ -41,25 +41,25 @@ int method1() => 1;
 
 } 
 
-// Code Snippet package path: package:testgen/..
+// Code Snippet package path: null
 int var2 = 1; 
 
-// Code Snippet package path: package:testgen/..
+// Code Snippet package path: null
 int func1() => 1; 
 
-// Code Snippet package path: package:testgen/..
+// Code Snippet package path: null
 final var1 = Class1(); 
 
-// Code Snippet package path: package:testgen/..
+// Code Snippet package path: null
 IntCallback var4 = (int x) => x * x; 
 
-// Code Snippet package path: package:testgen/..
+// Code Snippet package path: null
 int var5 = var4(var2); 
 
-// Code Snippet package path: package:testgen/..
+// Code Snippet package path: null
 final ClassList var6 = [Class1(), Class1()]; 
 
-// Code Snippet package path: package:testgen/..
+// Code Snippet package path: null
 enum Enum { 
 
 // rest of the code... 
@@ -70,7 +70,7 @@ value1
 
 } 
 
-// Code Snippet package path: package:testgen/..
+// Code Snippet package path: null
 extension Extension on int { 
 
 // rest of the code... 
@@ -86,12 +86,12 @@ int method2() => 3;
     });
 
     test('Test Context of func3', () {
-      final context = generateContextForDeclaration(decls['func3']!);
+      final context = buildDependencyContext(decls['func3']!);
       final formattedContext = formatContext(context);
       expect(
         formattedContext,
         equals('''
-// Code Snippet package path: package:testgen/..
+// Code Snippet package path: null
 class Class1 { 
 
 // rest of the code... 
@@ -106,10 +106,10 @@ set fieldSetter(int value) {
 
 } 
 
-// Code Snippet package path: package:testgen/..
+// Code Snippet package path: null
 int var2 = 1; 
 
-// Code Snippet package path: package:testgen/..
+// Code Snippet package path: null
 int var3 =
     var2 +
     func1() +
@@ -127,7 +127,7 @@ int var3 =
       expect(
         code,
         equals('''
-// Code Snippet package path: package:testgen/..
+// Code Snippet package path: null
 
 
 void func2(Class1 c1, Enum e) {

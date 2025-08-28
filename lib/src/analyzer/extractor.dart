@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'package:package_config/package_config.dart';
 import 'package:path/path.dart' as p;
 
 import 'package:analyzer/dart/analysis/analysis_context_collection.dart';
@@ -7,29 +8,35 @@ import 'package:testgen/src/analyzer/declaration.dart';
 import 'package:testgen/src/analyzer/parser.dart';
 import 'package:testgen/src/coverage/coverage_collection.dart';
 
-/// Extracts all top-level [Declaration]s from Dart files at [path].
+/// Extracts all [Declaration]s from the given [path].
 ///
-/// If [path] is a Dart file, only that file is analyzed. If [path] is
-/// a directory, all Dart files within it (recursively) are analyzed.
-/// Each file is resolved and parsed, and all discovered declarations are
-/// returned. Dependencies between declarations are also resolved.
+/// - If [path] is a Dart file, only that file is analyzed.
+/// - If [path] is a package directory, all Dart files under its `lib/`
+///   folder are analyzed recursively.
 ///
-/// [packageName] is used to generate package import paths for each file,
+/// Each file is resolved and parsed into [Declaration]s, and dependencies
+/// between declarations are linked.
 ///
-/// Returns a [Future] that completes with a list of [Declaration] objects.
-Future<List<Declaration>> extractDeclarations(
-  String path,
-  String packageName,
-) async {
+/// Returns a [Future] containing all discovered [Declaration]s.
+Future<List<Declaration>> extractDeclarations(String path) async {
+  print('[Analyzer] Extracting declarations from $path');
   final collection = AnalysisContextCollection(includedPaths: [path]);
 
   final dartFiles = <String>[];
 
   final fileSystemEntity = FileSystemEntity.typeSync(path);
+  final PackageConfig? config;
+
   if (fileSystemEntity == FileSystemEntityType.file && path.endsWith('.dart')) {
+    config = await findPackageConfig(Directory(p.dirname(path)));
     dartFiles.add(path);
   } else if (fileSystemEntity == FileSystemEntityType.directory) {
-    Directory(p.join(path, 'lib')).listSync(recursive: true).forEach((entity) {
+    config = await findPackageConfig(Directory(path));
+    final libDir = Directory(p.join(path, 'lib'));
+    if (!libDir.existsSync()) {
+      throw ArgumentError('Directory "$path" does not contain a lib folder');
+    }
+    libDir.listSync(recursive: true).forEach((entity) {
       if (entity is File && entity.path.endsWith('.dart')) {
         dartFiles.add(entity.path);
       }
@@ -38,13 +45,17 @@ Future<List<Declaration>> extractDeclarations(
     throw ArgumentError('Path must be a .dart file or directory');
   }
 
-  // Map to hold visited declarations that have been processed
+  if (config == null) {
+    throw ArgumentError(
+      'Path "$path" is not a package root directory nor a Dart file inside '
+      'a package directory.',
+    );
+  }
+
   final visitedDeclarations = <int, Declaration>{};
 
-  // This is used to handle cases where a declaration depends on another
-  // declaration that hasn't been visited yet.
-  // the value is a list of declarations that depend on the key which
-  // is a declaration id that has not been visited yet.
+  // Keep track of dependencies while visiting the AST in which the value is
+  // the list of dependencies that depends on the key declaration.
   final dependencies = <int, List<Declaration>>{};
 
   for (final filePath in dartFiles) {
@@ -58,11 +69,7 @@ Future<List<Declaration>> extractDeclarations(
         resolved.unit,
         visitedDeclarations,
         dependencies,
-        _toPackageImportPath(
-          absoluteFilePath: filePath,
-          packageRoot: path,
-          packageName: packageName,
-        ),
+        config.toPackageUri(File(filePath).uri).toString(),
         content,
       );
     }
@@ -82,6 +89,12 @@ Future<List<Declaration>> extractDeclarations(
   return visitedDeclarations.values.toList();
 }
 
+/// Extracts declarations that have untested code lines based on coverage data.
+///
+/// Returns a list of tuples where each tuple contains:
+/// - A [Declaration] that has untested lines
+/// - A list of relative line numbers (0-indexed from declaration start)
+///   that are uncovered
 List<(Declaration, List<int>)> extractUntestedDeclarations(
   Map<String, List<Declaration>> declarations,
   CoverageData coverageResults,
@@ -104,23 +117,4 @@ List<(Declaration, List<int>)> extractUntestedDeclarations(
   }
 
   return untestedDeclarations;
-}
-
-/// TODO(https://github.com/AmrAhmed119/dart-testgen/issues/12): use package_config
-/// Converts an absolute file path into a package import path
-String _toPackageImportPath({
-  required String absoluteFilePath,
-  required String packageRoot,
-  required String packageName,
-}) {
-  final libPath = p.join(packageRoot, 'lib');
-  if (!p.isWithin(libPath, absoluteFilePath) &&
-      absoluteFilePath != packageRoot) {
-    throw ArgumentError(
-      'File is not inside the lib directory: $absoluteFilePath',
-    );
-  }
-
-  final relativePath = p.relative(absoluteFilePath, from: libPath);
-  return 'package:$packageName/$relativePath';
 }

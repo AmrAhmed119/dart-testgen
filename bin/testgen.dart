@@ -4,6 +4,7 @@ import 'package:args/args.dart';
 import 'package:path/path.dart' as path;
 import 'package:testgen/src/LLM/context_generator.dart';
 import 'package:testgen/src/LLM/llm.dart';
+import 'package:testgen/src/LLM/validator.dart';
 import 'package:testgen/src/analyzer/declaration.dart';
 import 'package:testgen/src/analyzer/extractor.dart';
 import 'package:testgen/src/coverage/coverage_collection.dart';
@@ -53,6 +54,17 @@ ArgParser _createArgParser() =>
         help:
             'Gemini API key for authentication (or set GEMINI_API_KEY env var).',
       )
+      ..addOption(
+        'max-depth',
+        defaultsTo: '2',
+        help: 'Maximum dependency depth for context generation.',
+      )
+      ..addOption(
+        'max-attempts',
+        defaultsTo: '5',
+        help:
+            'Maximum number of attempts to generate tests for each declaration on failure.',
+      )
       ..addFlag(
         'effective-tests-only',
         defaultsTo: false,
@@ -71,6 +83,8 @@ class Flags {
     required this.model,
     required this.apiKey,
     required this.effectiveTestsOnly,
+    required this.maxDepth,
+    required this.maxAttempts,
   });
 
   final String package;
@@ -81,6 +95,8 @@ class Flags {
   final String model;
   final String apiKey;
   final bool effectiveTestsOnly;
+  final int maxDepth;
+  final int maxAttempts;
 }
 
 Future<Flags> parseArgs(List<String> arguments) async {
@@ -89,7 +105,14 @@ Future<Flags> parseArgs(List<String> arguments) async {
 
   void printUsage() {
     print('''
-To Be Updated
+TestGen - LLM-based test generation tool
+
+Generates comprehensive Dart unit tests using LLM (Gemini) for uncovered code.
+
+Analyzes code coverage, identifies untested declarations, and creates targeted
+tests to improve coverage metrics through an iterative validation process.
+
+Usage: testgen [OPTIONS]
 
 ${parser.usage}
 ''');
@@ -149,6 +172,8 @@ ${parser.usage}
     model: results['model'] as String,
     apiKey: results['api-key'] as String,
     effectiveTestsOnly: results['effective-tests-only'] as bool,
+    maxDepth: int.parse(results['max-depth'] as String),
+    maxAttempts: int.parse(results['max-attempts'] as String),
   );
 }
 
@@ -163,10 +188,7 @@ Future<void> main(List<String> arguments) async {
   );
   final coverageByFile = await formatCoverage(coverage, flags.package);
 
-  final declarations = await extractDeclarations(
-    flags.package,
-    flags.scopeOutput.first,
-  );
+  final declarations = await extractDeclarations(flags.package);
 
   final Map<String, List<Declaration>> declarationsByFile = {};
   for (final declaration in declarations) {
@@ -192,39 +214,39 @@ Future<void> main(List<String> arguments) async {
 
   int done = 0;
   for (final (declaration, lines) in untestedDeclarations) {
-    print('${untestedDeclarations.length - done} remaining');
+    print(
+      '[testgen] Generating tests for ${declaration.name}, remaining: '
+      '${untestedDeclarations.length - done}',
+    );
     done++;
     final toBeTestedCode = formatUntestedCode(declaration, lines);
-    final contextMap = generateContextForDeclaration(declaration, maxDepth: 5);
+    final contextMap = buildDependencyContext(
+      declaration,
+      maxDepth: flags.maxDepth,
+    );
     final contextCode = formatContext(contextMap);
 
-    final (status, chat, testFileManager) = await generateTestFile(
-      model,
-      toBeTestedCode,
-      contextCode,
-      flags.package,
-      '${declaration.name}_${declaration.id}_test.dart',
+    final (status, chat) = await generateTestFile(
+      model: model,
+      toBeTestedCode: toBeTestedCode,
+      contextCode: contextCode,
+      packagePath: flags.package,
+      fileName: '${declaration.name}_${declaration.id}_test.dart',
+      maxRetries: flags.maxAttempts,
+      coverageValidator:
+          flags.effectiveTestsOnly
+              ? CoverageValidator(
+                declaration,
+                lines.length,
+                flags.package,
+                flags.scopeOutput.first,
+              )
+              : null,
     );
-    if (status == TestStatus.created) {
-      if (flags.effectiveTestsOnly) {
-        final isImproved = await validateTestCoverageImprovement(
-          flags.package,
-          declaration,
-          lines.length,
-          scopeOutput: flags.scopeOutput,
-          declarationsByFile: declarationsByFile,
-        );
-        if (isImproved) {
-          print('✅ Test improved coverage for ${declaration.name}.');
-        } else {
-          print(
-            '❌ Test did not improve coverage for ${declaration.name}. '
-            'Deleting test file.',
-          );
-          testFileManager.deleteTest();
-        }
-      }
-    }
+    final tokens = await countTokens(model, chat);
+    print(
+      '[testgen] Test generation ended with $status and used $tokens tokens.\n',
+    );
   }
 
   exit(0);

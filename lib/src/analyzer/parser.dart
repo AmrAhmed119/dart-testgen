@@ -117,12 +117,7 @@ void _parseTopLevelVariableDeclaration(
     );
     visitedDeclarations[parsedDeclaration.id] = parsedDeclaration;
     declaration.variables.accept(
-      VariableDependencyVisitor(
-        variable,
-        parsedDeclaration,
-        visitedDeclarations,
-        dependencies,
-      ),
+      VariableDependencyVisitor(variable, parsedDeclaration, dependencies),
     );
   }
 }
@@ -158,8 +153,8 @@ void _parseCompoundDeclaration(
 
   // For compound declarations store the content, the start, and end line
   // numbers corresponding to the definition (signature) of the compound
-  final classOffset = declaration.firstTokenAfterCommentAndMetadata.offset;
-  final signatureEnd = content.indexOf(RegExp(r'[{;]'), classOffset) + 1;
+  final compoundOffset = declaration.firstTokenAfterCommentAndMetadata.offset;
+  final signatureEnd = content.indexOf(RegExp(r'[{;]'), compoundOffset) + 1;
 
   final parent = _parseDeclaration(
     declaration,
@@ -171,12 +166,7 @@ void _parseCompoundDeclaration(
   );
   visitedDeclarations[parent.id] = parent;
   declaration.accept(
-    CompoundDependencyVisitor(
-      declaration,
-      parent,
-      visitedDeclarations,
-      dependencies,
-    ),
+    CompoundDependencyVisitor(declaration, parent, dependencies),
   );
 
   _parseClassMembers(
@@ -253,14 +243,7 @@ void _parseClassMembers(
         break;
     }
     visitedDeclarations[parsedDecalaration.id] = parsedDecalaration;
-    member.accept(
-      DependencyVisitor(
-        member,
-        parsedDecalaration,
-        visitedDeclarations,
-        dependencies,
-      ),
-    );
+    member.accept(DependencyVisitor(member, parsedDecalaration, dependencies));
   }
 }
 
@@ -284,12 +267,7 @@ void _parseEnumConstants(
     );
     visitedDeclarations[parsedDeclaration.id] = parsedDeclaration;
     constant.accept(
-      DependencyVisitor(
-        constant,
-        parsedDeclaration,
-        visitedDeclarations,
-        dependencies,
-      ),
+      DependencyVisitor(constant, parsedDeclaration, dependencies),
     );
   }
 }
@@ -312,12 +290,5 @@ void _parseNamedCompilationUnitMember(
     name: member.name.lexeme,
   );
   visitedDeclarations[parsedDeclaration.id] = parsedDeclaration;
-  member.accept(
-    DependencyVisitor(
-      member,
-      parsedDeclaration,
-      visitedDeclarations,
-      dependencies,
-    ),
-  );
+  member.accept(DependencyVisitor(member, parsedDeclaration, dependencies));
 }

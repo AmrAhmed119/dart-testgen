@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:google_generative_ai/google_generative_ai.dart';
+import 'package:testgen/src/LLM/validator.dart';
 import 'package:testgen/src/LLM/prompt_generator.dart';
 import 'package:testgen/src/LLM/test_file.dart';
 
@@ -10,15 +11,13 @@ enum TestStatus { created, failed, skipped }
 class LLMResponse {
   final String code;
   final bool needTesting;
-  final String? comments;
 
-  LLMResponse({required this.code, required this.needTesting, this.comments});
+  LLMResponse({required this.code, required this.needTesting});
 
   factory LLMResponse.fromJson(Map<String, dynamic> json) {
     return LLMResponse(
       code: json['code'] as String,
       needTesting: json['needTesting'] as bool,
-      comments: json['comments'] as String?,
     );
   }
 }
@@ -34,6 +33,7 @@ final _apiKey = () {
 
 /// Creates and configures a [GenerativeModel] for LLM-based test generation.
 ///
+/// Parameters:
 /// - [model]: The model name to use. such as:
 ///     - 'gemini-2.5-pro' (default value)
 ///     - 'gemini-2.5-flash'
@@ -41,7 +41,8 @@ final _apiKey = () {
 /// - [apiKey]: Optional API key for authentication. If not provided,
 ///   uses the GEMINI_API_KEY environment variable.
 ///
-/// The returned model is configured with a response schema for test case generation,
+/// Returns a configured model with JSON response schema for generating
+/// structured responses.
 GenerativeModel createModel({String model = 'gemini-2.5-pro', String? apiKey}) {
   final schema = Schema.object(
     description: 'Schema for generated test cases from the model',
@@ -57,10 +58,6 @@ GenerativeModel createModel({String model = 'gemini-2.5-pro', String? apiKey}) {
             'False for: simple getters/setters, basic constructors,'
             'trivial methods, constants, or simple data classes.',
         nullable: false,
-      ),
-      'comments': Schema.string(
-        description: 'Any Comments about the test generation process.',
-        nullable: true,
       ),
     },
     requiredProperties: ['code', 'needTesting'],
@@ -84,115 +81,121 @@ GenerativeModel createModel({String model = 'gemini-2.5-pro', String? apiKey}) {
 }
 
 /// Generates and validates a Dart test file using an LLM through an iterative
-/// feedback loop. It prompts the LLM to create a test for the provided Dart
-/// code and context, writes the generated test to a file, analyzes it for
-/// errors, and sends any analyzer or test failures back to the LLM for
-/// correction. This process repeats until the test passes or the maximum
-/// number of retries is reached, applying exponential backoff on rate limits.
+/// feedback loop. This function orchestrates the complete test generation
+/// process by prompting the LLM to create a test for the provided
+/// [toBeTestedCode] and [contextCode], writing the generated test to a file
+/// in the `test/testgen/` directory, and running validation checks including
+/// analysis, execution, and formatting. If validation fails, it sends error
+/// feedback to the LLM for correction and repeats until all checks pass or
+/// [maxRetries] is reached.
 ///
-/// If successful, the test file is formatted; otherwise, it is removed.
+/// The function applies exponential backoff on rate limit errors starting
+/// with [initialBackoff] delay.
 ///
-/// Returns a [TestStatus] indicating whether the test was created, failed, or
-/// skipped, along with the [ChatSession] for any further analytics.
-Future<(TestStatus, ChatSession, TestFile)> generateTestFile(
-  GenerativeModel model,
-  String toBeTestedCode,
-  String contextCode,
-  String packagePath,
-  String fileName, {
+/// The [promptGen] parameter allows custom prompt templates while
+/// [coverageValidator] ensures generated tests improve code coverage.
+///
+/// Returns a tuple containing a [TestStatus] indicating whether the test was
+/// created, failed, or skipped, along with the [ChatSession] for token counting
+/// and analytics. Failed or skipped test files are automatically cleaned up.
+Future<(TestStatus, ChatSession)> generateTestFile({
+  required GenerativeModel model,
+  required String toBeTestedCode,
+  required String contextCode,
+  required String packagePath,
+  required String fileName,
+  PromptGenerator promptGen = const PromptGenerator(),
+  Validator? coverageValidator,
   int maxRetries = 5,
   Duration initialBackoff = const Duration(seconds: 1),
 }) async {
   final chat = model.startChat();
-  print('Starting test generation for $fileName');
-
-  int attempt = 0;
   TestStatus status = TestStatus.failed;
   Duration backoff = initialBackoff;
   final TestFile testFileManager = TestFile(packagePath, fileName);
-  String prompt = PromptGenerator.testCode(toBeTestedCode, contextCode);
+  String prompt = promptGen.testCode(toBeTestedCode, contextCode);
 
+  int attempt = 0;
   while (attempt < maxRetries) {
     attempt++;
-    print('\t Sending prompt to LLM (attempt $attempt/$maxRetries)');
-
+    print(
+      '[LLM] Attempt $attempt / $maxRetries to generate test for $fileName',
+    );
     try {
       final response = await chat.sendMessage(Content.text(prompt));
       if (response.text == null) {
         throw Exception('No response text received from the model.');
       }
-      backoff = initialBackoff;
 
+      backoff = initialBackoff;
       final result = LLMResponse.fromJson(jsonDecode(response.text!));
+
       if (!result.needTesting) {
-        print('\t Code does not need testing - skipping');
+        print('[LLM] No significant logic to test in $fileName. Skipping.');
         status = TestStatus.skipped;
         break;
       }
 
-      print('\t Writing generated test to file');
-      await testFileManager.writeTest(result.code, result.comments);
+      await testFileManager.writeTest(result.code);
 
-      print('\t Analyzing generated test code');
-      final analyzerErrors = await testFileManager.runAnalyzer(result.code);
-      if (analyzerErrors != null) {
-        print('\t Analyzer found errors, sending feedback to LLM');
-        print(analyzerErrors);
-        prompt = PromptGenerator.analysisError(analyzerErrors);
-        continue;
+      bool allChecksPassed = true;
+      for (final check in validators) {
+        final checkResult = await check.validate(testFileManager, promptGen);
+        if (!checkResult.isPassed) {
+          print('[Validator] Check failed.');
+          prompt = checkResult.recoveryPrompt!;
+          allChecksPassed = false;
+          break;
+        }
       }
-
-      print('\t Running generated test');
-      final testResult = await testFileManager.runTest();
-      if (testResult != null) {
-        print('\t ❌ Test execution failed, sending feedback to LLM');
-        print(testResult);
-        prompt = PromptGenerator.testFailError(testResult);
-        continue;
+      if (allChecksPassed) {
+        status = TestStatus.created;
+        break;
       }
-
-      print('\t Formatting test file');
-      await testFileManager.formatTest();
-
-      print('\t ✅ Test generated successfully!');
-      status = TestStatus.created;
-      break;
     } catch (e) {
       final errorMessage = e.toString().toLowerCase();
 
-      if (errorMessage.contains('you exceeded your current quota')) {
-        testFileManager.deleteTest();
-        print('\t API quota exceeded - stopping retries');
+      // Exit only if the daily quota (RPD) exceeded and prevent exiting if
+      // the quota exceeded for (RPM) or (TPM) by waiting at least a minute.
+      if (errorMessage.contains('you exceeded your current quota') &&
+          backoff.inSeconds >= 128) {
+        status = TestStatus.failed;
+        stderr.writeln(
+          "You exceeded you daily quota, try again tomorrow or try another model",
+        );
         exit(0);
       }
 
-      if (errorMessage.contains('rate limit exceeded')) {
-        print('\t Rate limit exceeded');
+      if (errorMessage.contains('rate limit exceeded') ||
+          errorMessage.contains('you exceeded your current quota')) {
         await Future.delayed(backoff);
+        print('[LLM] Rate limit exceeded, retrying in $backoff...');
         backoff *= 2;
         continue;
       }
 
-      prompt = PromptGenerator.fixError(errorMessage);
-      print('Error details: $e');
+      print('[LLM] Error encountered');
+      prompt = promptGen.fixError(errorMessage);
+    }
+  }
+
+  if (coverageValidator != null && status == TestStatus.created) {
+    final coverageResult = await coverageValidator.validate(
+      testFileManager,
+      promptGen,
+    );
+    if (!coverageResult.isPassed) {
+      status = TestStatus.failed;
     }
   }
 
   if (status == TestStatus.failed || status == TestStatus.skipped) {
-    print('\t 💥 Test generation failed after $maxRetries attempts');
-    print('\t 🗑️ Cleaning up failed test file');
     await testFileManager.deleteTest();
   }
 
-  print('\t 🏁 Test generation completed with status: ${status.name}');
-  return (status, chat, testFileManager);
+  return (status, chat);
 }
 
-Future<int> getTokenCount(GenerativeModel model, ChatSession chat) async {
-  final historyContents = chat.history.toList();
-
-  final tokenResponse = await model.countTokens(historyContents);
-  final totalTokens = tokenResponse.totalTokens;
-
-  return totalTokens;
-}
+/// Returns the total number of tokens used in the [chat] session.
+Future<int> countTokens(GenerativeModel model, ChatSession chat) async =>
+    (await model.countTokens(chat.history)).totalTokens;

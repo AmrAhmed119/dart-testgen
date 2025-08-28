@@ -1,23 +1,25 @@
 import 'package:testgen/src/analyzer/declaration.dart';
 
-/// Generates a context map for a given [declaration], traversing its dependencies
-/// up to [maxDepth] levels deep. The returned map groups declarations by their parent,
-/// which can be used to reconstruct the code context for LLM prompt.
-Map<Declaration?, List<Declaration>> generateContextForDeclaration(
+/// Builds a context map for a given [declaration], by traversing its
+/// dependencies up to [maxDepth] levels deep.
+///
+/// The returned map groups declarations by their parent, which can be `null`
+/// for top-level declarations.
+Map<Declaration?, List<Declaration>> buildDependencyContext(
   Declaration declaration, {
   int maxDepth = 1,
 }) {
   final visitedDeclarations = <Declaration>{};
   final parentMap = <Declaration?, List<Declaration>>{};
 
-  for (final dependent in declaration.dependsOn) {
-    _dfs(dependent, visitedDeclarations, parentMap, maxDepth: maxDepth);
+  for (final dependency in declaration.dependsOn) {
+    _dfs(dependency, visitedDeclarations, parentMap, maxDepth: maxDepth);
   }
 
   return parentMap;
 }
 
-/// Formats the context map produced by [generateContextForDeclaration] into a
+/// Formats the context map produced by [buildDependencyContext] into a
 /// human-readable string, including code snippets and their file paths.
 String formatContext(Map<Declaration?, List<Declaration>> parentMap) {
   final buffer = StringBuffer();
@@ -26,10 +28,10 @@ String formatContext(Map<Declaration?, List<Declaration>> parentMap) {
     if (parent != null) {
       buffer.writeln('// Code Snippet package path: ${parent.path}');
 
-      buffer.writeln('${parent.sourceCode.join('\n')} \n');
+      buffer.writeln('${parent.toCode()} \n');
       buffer.writeln('// rest of the code... \n');
       for (final child in children) {
-        buffer.writeln('${child.sourceCode.join('\n')} \n');
+        buffer.writeln('${child.toCode()} \n');
       }
       buffer.writeln('// rest of the code... \n');
       buffer.writeln('} \n');
@@ -37,7 +39,7 @@ String formatContext(Map<Declaration?, List<Declaration>> parentMap) {
       for (final child in children) {
         if (parentMap.containsKey(child)) continue;
         buffer.writeln('// Code Snippet package path: ${child.path}');
-        buffer.writeln('${child.sourceCode.join('\n')} \n');
+        buffer.writeln('${child.toCode()} \n');
       }
     }
   }
@@ -46,7 +48,7 @@ String formatContext(Map<Declaration?, List<Declaration>> parentMap) {
 }
 
 /// Returns the code for [declaration] after marking the specified [lines]
-/// as untested, and wrapping it in the parent declaration's context if available.
+/// as untested, and wrapping it in the parent declaration's context if exists.
 String formatUntestedCode(Declaration declaration, List<int> lines) {
   final markedCode = List<String>.from(declaration.sourceCode);
   for (final line in lines) {
@@ -55,7 +57,7 @@ String formatUntestedCode(Declaration declaration, List<int> lines) {
 
   return '''
 // Code Snippet package path: ${declaration.path}
-${declaration.parent?.sourceCode.join('\n') ?? ''}
+${declaration.parent?.toCode() ?? ''}
 
 ${markedCode.join('\n')}
 
@@ -77,9 +79,9 @@ void _dfs(
   visitedDeclarations.add(declaration);
   parentMap.putIfAbsent(declaration.parent, () => []).add(declaration);
 
-  for (final dependent in declaration.dependsOn) {
+  for (final dependency in declaration.dependsOn) {
     _dfs(
-      dependent,
+      dependency,
       visitedDeclarations,
       parentMap,
       currentDepth: currentDepth + 1,

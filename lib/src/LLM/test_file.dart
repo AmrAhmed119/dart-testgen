@@ -4,6 +4,12 @@ import 'package:analyzer/dart/analysis/utilities.dart';
 import 'package:analyzer/diagnostic/diagnostic.dart';
 import 'package:path/path.dart' as path;
 
+/// Manages the lifecycle of generated test files handling all operations
+/// related to test files including writing, validation, execution, formatting,
+/// and cleanup.
+///
+/// The test files are created in the `test/testgen/` directory within the
+/// package path provided.
 class TestFile {
   final String testFilePath;
   final String packagePath;
@@ -11,7 +17,8 @@ class TestFile {
   TestFile(this.packagePath, String fileName)
     : testFilePath = path.join(packagePath, 'test', 'testgen', fileName);
 
-  Future<void> writeTest(String content, String? comment) async {
+  Future<void> writeTest(String content) async {
+    print('[TestFile] Writing test file to $testFilePath');
     final testFile = File(testFilePath);
     final directory = testFile.parent;
     if (!await directory.exists()) {
@@ -19,22 +26,23 @@ class TestFile {
     }
 
     await testFile.writeAsString(
-      '// Auto-Generated Test File\n'
+      '// LLM-Generated test file created by testgen\n\n'
       '$content\n',
     );
   }
 
   Future<void> deleteTest() async {
+    print('[TestFile] Deleting test file at $testFilePath');
     final testFile = File(testFilePath);
     if (await testFile.exists()) {
-      testFile.deleteSync();
+      await testFile.delete();
     }
   }
 
-  Future<String?> runAnalyzer(String code) async {
-    final result = parseString(content: code);
+  Future<String?> runAnalyzer() async {
+    final content = await File(testFilePath).readAsString();
+    final result = parseString(content: content);
 
-    // TODO: Add a command line option to specify the error severity level
     final errors =
         result.errors
             .where((error) => error.severity == Severity.error)
@@ -53,10 +61,12 @@ class TestFile {
     return result.exitCode != 0 ? result.stdout.toString() : null;
   }
 
-  Future<void> formatTest() async {
-    await Process.run('dart', [
+  Future<String?> runFormat() async {
+    final result = await Process.run('dart', [
       'format',
       testFilePath,
     ], workingDirectory: packagePath);
+
+    return result.exitCode != 0 ? result.stdout.toString() : null;
   }
 }
