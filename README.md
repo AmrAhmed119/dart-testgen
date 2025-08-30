@@ -1,39 +1,69 @@
-<!-- 
-This README describes the package. If you publish this package to pub.dev,
-this README's contents appear on the landing page for your package.
+TestGen is an LLM-based test generation tool that creates comprehensive Dart unit tests for uncovered code using Google's Gemini AI models.
 
-For information about how to write a good package README, see the guide for
-[writing package pages](https://dart.dev/tools/pub/writing-package-pages). 
-
-For general information about developing packages, see the Dart guide for
-[creating packages](https://dart.dev/guides/libraries/create-packages)
-and the Flutter guide for
-[developing packages and plugins](https://flutter.dev/to/develop-packages). 
--->
-
-TODO: Put a short description of the package here that helps potential users
-know whether this package might be useful for them.
+[![CI](https://github.com/AmrAhmed119/dart-testgen/actions/workflows/testgen.yaml/badge.svg)](https://github.com/AmrAhmed119/dart-testgen/actions/workflows/testgen.yaml)
 
 ## Features
 
-TODO: List what your package can do. Maybe include images, gifs, or videos.
+- **Coverage-Driven Test Generation**: Automatically identifies untested code lines and generates tests to improve coverage.
+- **Dependency-Aware Context**: Builds a dependency graph across code declarations by analyzing code dependencies to create dependency-aware context for prompting when testing any declaration.
+- **LLM Integration**: Uses Google's Gemini models (Pro, Flash, Flash-Lite) for automated test generation with context-aware prompting.
+- **Iterative Validation**: Validates generated tests through static analysis, execution, formatting, and optional coverage improvement checks with backoff propagation for API errors and rate limits.
+- **Smart Filtering**: Skips trivial code (getters/setters, simple constructors) that doesn't require testing.
 
-## Getting started
+## Getting Started
 
-TODO: List prerequisites and provide or point to information on how to
-start using the package.
+### Install testgen
+
+```dart
+dart pub global activate testgen
+```
+
+### Gemini API key
+
+Running the package requires a Gemini API key.
+- Configure your key using either method:
+  - Set as environment variable:
+    ```bash
+    export GEMINI_API_KEY=your_api_key
+    ```
+  - Pass as command-line argument: `--api-key your_api_key`
+- Obtain an API key at https://ai.google.dev/gemini-api/docs/api-key.
 
 ## Usage
 
-TODO: Include short and useful examples for package users. Add longer examples
-to `/example` folder. 
+Generate tests for your entire package.
 
-```dart
-const like = 'sample';
+By default, this script assumes it's being run from the root directory of a package, and outputs test files to the `test/testgen/` folder with the naming convention: `{declaration_name}_{declaration_id}_test.dart`
+
+```bash
+dart pub global run testgen:testgen
 ```
 
-## Additional information
+Advanced usage with custom configuration
+```bash
+dart pub global run testgen:testgen --package '/home/user/code' --model gemini-2.5-flash --api-key your_key --max-depth 5 --max-attempts 10 --effective-tests-only
+```
 
-TODO: Tell users more about the package: where to find more information, how to 
-contribute to the package, how to file issues, what response they can expect 
-from the package authors, and more.
+### Command Line Options
+
+| Option | Short | Default | Description |
+|--------|-------|---------|-------------|
+| `--package` | | `.` (current directory) | Root directory of the package to test |
+| `--model` | | `gemini-2.5-pro` | Gemini model to use (`gemini-2.5-pro`, `gemini-2.5-flash`, `gemini-2.5-flash-lite`) |
+| `--api-key` | | `$GEMINI_API_KEY` | Gemini API key for authentication |
+| `--effective-tests-only` | | `false` | Only generate tests that actually improve coverage |
+| `--scope-output` | | `[]` | Restrict coverage to specific package paths |
+| `--max-depth` | | `2` | Maximum dependency depth for context generation |
+| `--max-attempts` | | `5` | Maximum number of attempts for test generation per declaration |
+| `--help` | `-h` | | Show usage information |
+
+## ⏰ Fair Warning
+
+ TestGen takes time - sometimes a lot of it. Depending on your codebase size, this might be a perfect time to:
+
+- Grab a coffee ☕
+- Take a power nap 😴
+- Learn a new language 🗣️ (we recommend Dart!)
+- Question your life choices that led to having so much untested code 🤔
+
+The good news? You'll come back to beautifully generated tests.
