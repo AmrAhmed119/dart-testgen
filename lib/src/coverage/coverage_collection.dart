@@ -170,7 +170,6 @@ Future<void> _generateCoverageImportFile(String packagePath) async {
       .map((file) => 'import \'${config?.toPackageUri(file.uri)}\';')
       .join('\n');
 
-
   importsFile.createSync(recursive: true);
 
   importsFile.writeAsStringSync('''
