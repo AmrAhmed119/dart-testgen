@@ -87,6 +87,7 @@ Future<Map<String, dynamic>> runTestsAndCollectCoverage(
   bool isInternalCall = false,
   required Set<String> scopeOutput,
 }) async {
+  print('[Coverage] Running tests and collecting coverage...');
   if (!_isSignalsWatched) {
     _watchExitSignal(ProcessSignal.sighup);
     _watchExitSignal(ProcessSignal.sigint);
