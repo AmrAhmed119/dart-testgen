@@ -3,18 +3,19 @@ import 'package:testgen/src/LLM/context_generator.dart';
 import 'package:testgen/src/analyzer/declaration.dart';
 import 'package:path/path.dart' as path;
 
-import '../analyzer/utils.dart';
+import '../utils.dart';
 
 void main() {
   late Map<String, Declaration> decls;
 
   setUpAll(() async {
-    decls = await extractDeclarationsForSourceFile(
+    decls = await extractNamedDeclarationsFromFile(
       path.join(
         'test',
-        'analyzer',
+        'fixtures',
+        'test_package',
+        'lib',
         'dependency_graph',
-        'code',
         'top_level.dart',
       ),
       ['func2', 'func3'],
@@ -28,7 +29,7 @@ void main() {
       expect(
         formattedContext,
         equals('''
-// Code Snippet package path: null
+// Code Snippet package path: package:test_package/dependency_graph/top_level.dart
 class Class1 { 
 
 // rest of the code... 
@@ -41,25 +42,25 @@ int method1() => 1;
 
 } 
 
-// Code Snippet package path: null
+// Code Snippet package path: package:test_package/dependency_graph/top_level.dart
 int var2 = 1; 
 
-// Code Snippet package path: null
+// Code Snippet package path: package:test_package/dependency_graph/top_level.dart
 int func1() => 1; 
 
-// Code Snippet package path: null
+// Code Snippet package path: package:test_package/dependency_graph/top_level.dart
 final var1 = Class1(); 
 
-// Code Snippet package path: null
+// Code Snippet package path: package:test_package/dependency_graph/top_level.dart
 IntCallback var4 = (int x) => x * x; 
 
-// Code Snippet package path: null
+// Code Snippet package path: package:test_package/dependency_graph/top_level.dart
 int var5 = var4(var2); 
 
-// Code Snippet package path: null
+// Code Snippet package path: package:test_package/dependency_graph/top_level.dart
 final ClassList var6 = [Class1(), Class1()]; 
 
-// Code Snippet package path: null
+// Code Snippet package path: package:test_package/dependency_graph/top_level.dart
 enum Enum { 
 
 // rest of the code... 
@@ -70,7 +71,7 @@ value1
 
 } 
 
-// Code Snippet package path: null
+// Code Snippet package path: package:test_package/dependency_graph/top_level.dart
 extension Extension on int { 
 
 // rest of the code... 
@@ -91,7 +92,7 @@ int method2() => 3;
       expect(
         formattedContext,
         equals('''
-// Code Snippet package path: null
+// Code Snippet package path: package:test_package/dependency_graph/top_level.dart
 class Class1 { 
 
 // rest of the code... 
@@ -106,10 +107,10 @@ set fieldSetter(int value) {
 
 } 
 
-// Code Snippet package path: null
+// Code Snippet package path: package:test_package/dependency_graph/top_level.dart
 int var2 = 1; 
 
-// Code Snippet package path: null
+// Code Snippet package path: package:test_package/dependency_graph/top_level.dart
 int var3 =
     var2 +
     func1() +
@@ -127,7 +128,7 @@ int var3 =
       expect(
         code,
         equals('''
-// Code Snippet package path: null
+// Code Snippet package path: package:test_package/dependency_graph/top_level.dart
 
 
 void func2(Class1 c1, Enum e) {
