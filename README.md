@@ -44,11 +44,18 @@ Advanced usage with custom configuration
 dart pub global run testgen:testgen --package '/home/user/code' --model gemini-2.5-flash --api-key your_key --max-depth 5 --max-attempts 10 --effective-tests-only
 ```
 
+It’s recommended to run the package on a **specific set of files** rather than the entire codebase using `target-files` flag, This reduces execution time, and make results easier to analyze & review.
+```bash
+dart pub global run testgen:testgen --package '/home/user/code' --target-files 'lib/src/foo.dart,lib/src/temp.dart'
+```
+
+
 ### Command Line Options
 
 | Option | Short | Default | Description |
 |--------|-------|---------|-------------|
 | `--package` | | `.` (current directory) | Root directory of the package to test |
+| `--target-files` | | `[]` | Limit test generation to specific dart files inside the package (paths relative to package root, e.g. `lib/foo.dart`) |
 | `--model` | | `gemini-2.5-pro` | Gemini model to use (`gemini-2.5-pro`, `gemini-2.5-flash`, `gemini-2.5-flash-lite`) |
 | `--api-key` | | `$GEMINI_API_KEY` | Gemini API key for authentication |
 | `--effective-tests-only` | | `false` | Only generate tests that actually improve coverage |
