@@ -8,12 +8,13 @@ void main() {
   late Map<String, Declaration> decls;
 
   setUpAll(() async {
-    decls = await extractDeclarationsForSourceFile(
+    decls = await extractNamedDeclarationsFromFile(
       path.join(
         'test',
-        'analyzer',
+        'fixtures',
+        'test_package',
+        'lib',
         'dependency_graph',
-        'code',
         'type_alias.dart',
       ),
       ['Class1', 'Class2', 'Alias1', 'Alias2', 'Alias3', 'Alias4'],
