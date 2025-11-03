@@ -2,14 +2,21 @@ import 'package:test/test.dart';
 import 'package:testgen/src/analyzer/declaration.dart';
 import 'package:path/path.dart' as path;
 
-import '../utils.dart';
+import '../../utils.dart';
 
 void main() {
   late Map<String, Declaration> decls;
 
   setUpAll(() async {
-    decls = await extractDeclarationsForSourceFile(
-      path.join('test', 'analyzer', 'parser', 'code.dart'),
+    decls = await extractNamedDeclarationsFromFile(
+      path.join(
+        'test',
+        'fixtures',
+        'test_package',
+        'lib',
+        'parser',
+        'code.dart',
+      ),
       [
         'a',
         'b',

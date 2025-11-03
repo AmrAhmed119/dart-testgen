@@ -3,18 +3,19 @@ import 'package:testgen/src/LLM/context_generator.dart';
 import 'package:testgen/src/analyzer/declaration.dart';
 import 'package:path/path.dart' as path;
 
-import '../analyzer/utils.dart';
+import '../utils.dart';
 
 void main() {
   late Map<String, Declaration> decls;
 
   setUpAll(() async {
-    decls = await extractDeclarationsForSourceFile(
+    decls = await extractNamedDeclarationsFromFile(
       path.join(
         'test',
-        'analyzer',
+        'fixtures',
+        'test_package',
+        'lib',
         'dependency_graph',
-        'code',
         'compound.dart',
       ),
       ['ExtensionType'],
@@ -28,16 +29,16 @@ void main() {
       expect(
         formattedContext,
         equals('''
-// Code Snippet package path: null
+// Code Snippet package path: package:test_package/dependency_graph/compound.dart
 class Class1 { 
 
-// Code Snippet package path: null
+// Code Snippet package path: package:test_package/dependency_graph/compound.dart
 abstract class Abstract1 { 
 
-// Code Snippet package path: null
+// Code Snippet package path: package:test_package/dependency_graph/compound.dart
 abstract class Abstract2 { 
 
-// Code Snippet package path: null
+// Code Snippet package path: package:test_package/dependency_graph/compound.dart
 class Class2 extends Class1
     with Mixin1, Mixin2
     implements Abstract1, Abstract2 { 
@@ -55,24 +56,24 @@ class Class2 extends Class1
       expect(
         formattedContext,
         equals('''
-// Code Snippet package path: null
+// Code Snippet package path: package:test_package/dependency_graph/compound.dart
 class Class1 { 
 
-// Code Snippet package path: null
+// Code Snippet package path: package:test_package/dependency_graph/compound.dart
 abstract class Abstract1 { 
 
-// Code Snippet package path: null
+// Code Snippet package path: package:test_package/dependency_graph/compound.dart
 abstract class Abstract2 { 
 
-// Code Snippet package path: null
+// Code Snippet package path: package:test_package/dependency_graph/compound.dart
 class Class2 extends Class1
     with Mixin1, Mixin2
     implements Abstract1, Abstract2 { 
 
-// Code Snippet package path: null
+// Code Snippet package path: package:test_package/dependency_graph/compound.dart
 mixin Mixin1 { 
 
-// Code Snippet package path: null
+// Code Snippet package path: package:test_package/dependency_graph/compound.dart
 mixin Mixin2 { 
 
 '''),

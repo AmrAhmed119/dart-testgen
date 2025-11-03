@@ -1,6 +1,6 @@
 import 'dart:io';
 import 'package:package_config/package_config.dart';
-import 'package:path/path.dart' as p;
+import 'package:path/path.dart' as path;
 
 import 'package:analyzer/dart/analysis/analysis_context_collection.dart';
 import 'package:analyzer/dart/analysis/results.dart';
@@ -8,49 +8,39 @@ import 'package:testgen/src/analyzer/declaration.dart';
 import 'package:testgen/src/analyzer/parser.dart';
 import 'package:testgen/src/coverage/coverage_collection.dart';
 
-/// Extracts all [Declaration]s from the given [path].
+/// Extracts [Declaration]s from the given [package].
 ///
-/// - If [path] is a Dart file, only that file is analyzed.
-/// - If [path] is a package directory, all Dart files under its `lib/`
-///   folder are analyzed recursively.
+/// If [targetFiles] is provided, only declarations in the provided file paths
+/// are returned.
 ///
 /// Each file is resolved and parsed into [Declaration]s, and dependencies
 /// between declarations are linked.
 ///
-/// Returns a [Future] containing all discovered [Declaration]s.
-Future<List<Declaration>> extractDeclarations(String path) async {
-  print('[Analyzer] Extracting declarations from $path');
-  final collection = AnalysisContextCollection(includedPaths: [path]);
+/// Returns a [Future] containing discovered [Declaration]s.
+Future<List<Declaration>> extractDeclarations(
+  String package, {
+  List<String> targetFiles = const [],
+}) async {
+  print('[Analyzer] Extracting declarations from $package');
+  final collection = AnalysisContextCollection(includedPaths: [package]);
 
-  final dartFiles = <String>[];
-
-  final fileSystemEntity = FileSystemEntity.typeSync(path);
-  final PackageConfig? config;
-
-  if (fileSystemEntity == FileSystemEntityType.file && path.endsWith('.dart')) {
-    config = await findPackageConfig(Directory(p.dirname(path)));
-    dartFiles.add(path);
-  } else if (fileSystemEntity == FileSystemEntityType.directory) {
-    config = await findPackageConfig(Directory(path));
-    final libDir = Directory(p.join(path, 'lib'));
-    if (!libDir.existsSync()) {
-      throw ArgumentError('Directory "$path" does not contain a lib folder');
-    }
-    libDir.listSync(recursive: true).forEach((entity) {
-      if (entity is File && entity.path.endsWith('.dart')) {
-        dartFiles.add(entity.path);
-      }
-    });
-  } else {
-    throw ArgumentError('Path must be a .dart file or directory');
-  }
-
+  final config = await findPackageConfig(Directory(package));
   if (config == null) {
-    throw ArgumentError(
-      'Path "$path" is not a package root directory nor a Dart file inside '
-      'a package directory.',
-    );
+    throw ArgumentError('Path "$package" is not a dart package root directory');
   }
+
+  final libDir = Directory(path.join(package, 'lib'));
+  if (!libDir.existsSync()) {
+    throw ArgumentError('Directory "$package" does not contain a lib folder');
+  }
+
+  final dartFiles =
+      libDir
+          .listSync(recursive: true)
+          .whereType<File>()
+          .where((file) => file.path.endsWith('.dart'))
+          .map((file) => file.path)
+          .toList();
 
   final visitedDeclarations = <int, Declaration>{};
 
@@ -86,7 +76,17 @@ Future<List<Declaration>> extractDeclarations(String path) async {
     }
   }
 
-  return visitedDeclarations.values.toList();
+  final allDeclarations = visitedDeclarations.values.toList();
+
+  if (targetFiles.isNotEmpty) {
+    final targetSet =
+        targetFiles
+            .map((file) => config.toPackageUri(File(file).uri).toString())
+            .toSet();
+    return allDeclarations.where((d) => targetSet.contains(d.path)).toList();
+  }
+
+  return allDeclarations;
 }
 
 /// Extracts declarations that have untested code lines based on coverage data.

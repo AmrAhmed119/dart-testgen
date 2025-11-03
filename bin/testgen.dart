@@ -22,6 +22,13 @@ ArgParser _createArgParser() =>
         defaultsTo: '.',
         help: 'Root directory of the package to test.',
       )
+      ..addMultiOption(
+        'target-files',
+        defaultsTo: [],
+        help:
+            'Limit test generation to specific dart files inside the package.',
+        valueHelp: 'lib/foo.dart,lib/src/temp.dart',
+      )
       ..addOption(
         'port',
         defaultsTo: '0',
@@ -81,6 +88,7 @@ ArgParser _createArgParser() =>
 class Flags {
   const Flags({
     required this.package,
+    required this.targetFiles,
     required this.vmServicePort,
     required this.branchCoverage,
     required this.functionCoverage,
@@ -93,6 +101,7 @@ class Flags {
   });
 
   final String package;
+  final List<String> targetFiles;
   final String vmServicePort;
   final bool branchCoverage;
   final bool functionCoverage;
@@ -149,6 +158,21 @@ ${parser.usage}
     );
   }
 
+  final libDir = path.join(packageDir, 'lib');
+  final targetFiles =
+      (results['target-files'] as List<String>).map((file) {
+        final fullPath = path.normalize(path.join(packageDir, file));
+
+        if (!file.endsWith('.dart') ||
+            !path.isWithin(libDir, fullPath) ||
+            !FileSystemEntity.isFileSync(fullPath)) {
+          fail(
+            'target-files must contain dart files exist inside lib directory',
+          );
+        }
+        return fullPath;
+      }).toList();
+
   final scopes =
       results['scope-output'].isEmpty
           ? getAllWorkspaceNames(packageDir)
@@ -170,6 +194,7 @@ ${parser.usage}
 
   return Flags(
     package: packageDir,
+    targetFiles: targetFiles,
     vmServicePort: results['port'],
     branchCoverage: results['branch-coverage'],
     functionCoverage: results['function-coverage'],
@@ -193,7 +218,10 @@ Future<void> main(List<String> arguments) async {
   );
   final coverageByFile = await formatCoverage(coverage, flags.package);
 
-  final declarations = await extractDeclarations(flags.package);
+  final declarations = await extractDeclarations(
+    flags.package,
+    targetFiles: flags.targetFiles,
+  );
 
   final Map<String, List<Declaration>> declarationsByFile = {};
   for (final declaration in declarations) {

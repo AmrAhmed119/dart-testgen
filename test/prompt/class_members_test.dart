@@ -3,18 +3,19 @@ import 'package:testgen/src/LLM/context_generator.dart';
 import 'package:testgen/src/analyzer/declaration.dart';
 import 'package:path/path.dart' as path;
 
-import '../analyzer/utils.dart';
+import '../utils.dart';
 
 void main() {
   late Map<String, Declaration> decls;
 
   setUpAll(() async {
-    decls = await extractDeclarationsForSourceFile(
+    decls = await extractNamedDeclarationsFromFile(
       path.join(
         'test',
-        'analyzer',
+        'fixtures',
+        'test_package',
+        'lib',
         'dependency_graph',
-        'code',
         'class_members.dart',
       ),
       ['method4'],
@@ -28,13 +29,13 @@ void main() {
       expect(
         formattedContext,
         equals('''
-// Code Snippet package path: null
+// Code Snippet package path: package:test_package/dependency_graph/class_members.dart
 int globalVar1 = 30; 
 
-// Code Snippet package path: null
+// Code Snippet package path: package:test_package/dependency_graph/class_members.dart
 void globalFunc(int x) {} 
 
-// Code Snippet package path: null
+// Code Snippet package path: package:test_package/dependency_graph/class_members.dart
 enum Enum { 
 
 // rest of the code... 
@@ -45,7 +46,7 @@ value1(0)
 
 } 
 
-// Code Snippet package path: null
+// Code Snippet package path: package:test_package/dependency_graph/class_members.dart
 mixin Logger { 
 
 // rest of the code... 
@@ -56,7 +57,7 @@ void log(String msg) {}
 
 } 
 
-// Code Snippet package path: null
+// Code Snippet package path: package:test_package/dependency_graph/class_members.dart
 class Class1 { 
 
 // rest of the code... 
@@ -69,7 +70,7 @@ void method1() {}
 
 } 
 
-// Code Snippet package path: null
+// Code Snippet package path: package:test_package/dependency_graph/class_members.dart
 extension StringExtension on String { 
 
 // rest of the code... 
@@ -80,7 +81,7 @@ void method2() {}
 
 } 
 
-// Code Snippet package path: null
+// Code Snippet package path: package:test_package/dependency_graph/class_members.dart
 class Class2 extends Class1 with Logger { 
 
 // rest of the code... 
@@ -104,7 +105,7 @@ set field3(int i) => _field3 = i;
       expect(
         code,
         equals('''
-// Code Snippet package path: null
+// Code Snippet package path: package:test_package/dependency_graph/class_members.dart
 class Class2 extends Class1 with Logger {
 
 void method4() {
