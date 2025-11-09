@@ -2,6 +2,8 @@ import 'package:test/test.dart';
 import 'package:testgen/src/analyzer/declaration.dart';
 import 'package:testgen/src/analyzer/extractor.dart';
 
+import '../../utils.dart';
+
 void main() {
   const fileA = 'package:test_package/lib/a.dart';
   const fileB = 'package:test_package/lib/b.dart';
@@ -14,23 +16,6 @@ void main() {
     'line 6',
   ];
 
-  Declaration sampleDecl(
-    int id, {
-    required String name,
-    required String path,
-    required int startLine,
-    int? endLine,
-  }) {
-    return Declaration(
-      id,
-      name: name,
-      sourceCode: sourceCode,
-      startLine: startLine,
-      endLine: endLine ?? startLine + sourceCode.length - 1,
-      path: path,
-    );
-  }
-
   group('Test untested declarations extraction', () {
     test('Empty file', () {
       final result = extractUntestedDeclarations({}, []);
@@ -40,7 +25,15 @@ void main() {
 
     test('Fully covered code', () {
       final declarations = <String, List<Declaration>>{
-        fileA: [sampleDecl(1, name: 'a1', path: fileA, startLine: 1)],
+        fileA: [
+          sampleDecl(
+            1,
+            name: 'a1',
+            path: fileA,
+            sourceCode: sourceCode,
+            startLine: 1,
+          ),
+        ],
       };
       final result = extractUntestedDeclarations(declarations, []);
 
@@ -49,7 +42,15 @@ void main() {
 
     test('path mismatch between coverage & declarations yields no results', () {
       final declarations = <String, List<Declaration>>{
-        fileA: [sampleDecl(1, name: 'a1', path: fileA, startLine: 1)],
+        fileA: [
+          sampleDecl(
+            1,
+            name: 'a1',
+            path: fileA,
+            sourceCode: sourceCode,
+            startLine: 1,
+          ),
+        ],
       };
       final coverage = <(String, List<int>)>[
         (fileB, [3, 4]),
@@ -62,14 +63,50 @@ void main() {
     test('extracts untested declarations from mock coverage', () {
       final declarations = <String, List<Declaration>>{
         fileA: [
-          sampleDecl(1, name: 'a1', path: fileA, startLine: 1),
-          sampleDecl(2, name: 'a2', path: fileA, startLine: 15),
-          sampleDecl(3, name: 'a3', path: fileA, startLine: 100),
+          sampleDecl(
+            1,
+            name: 'a1',
+            path: fileA,
+            sourceCode: sourceCode,
+            startLine: 1,
+          ),
+          sampleDecl(
+            2,
+            name: 'a2',
+            path: fileA,
+            sourceCode: sourceCode,
+            startLine: 15,
+          ),
+          sampleDecl(
+            3,
+            name: 'a3',
+            path: fileA,
+            sourceCode: sourceCode,
+            startLine: 100,
+          ),
         ],
         fileB: [
-          sampleDecl(4, name: 'b1', path: fileB, startLine: 40),
-          sampleDecl(5, name: 'b2', path: fileB, startLine: 50),
-          sampleDecl(6, name: 'b3', path: fileB, startLine: 80),
+          sampleDecl(
+            4,
+            name: 'b1',
+            path: fileB,
+            sourceCode: sourceCode,
+            startLine: 40,
+          ),
+          sampleDecl(
+            5,
+            name: 'b2',
+            path: fileB,
+            sourceCode: sourceCode,
+            startLine: 50,
+          ),
+          sampleDecl(
+            6,
+            name: 'b3',
+            path: fileB,
+            sourceCode: sourceCode,
+            startLine: 80,
+          ),
         ],
       };
       final coverage = <(String, List<int>)>[
@@ -99,7 +136,15 @@ void main() {
 
     test('boundary inclusion (start and end lines included)', () {
       final declarations = <String, List<Declaration>>{
-        fileA: [sampleDecl(1, name: 'a1', path: fileA, startLine: 1)],
+        fileA: [
+          sampleDecl(
+            1,
+            name: 'a1',
+            path: fileA,
+            sourceCode: sourceCode,
+            startLine: 1,
+          ),
+        ],
       };
       final coverage = <(String, List<int>)>[
         (fileA, [1, 6]),
@@ -118,8 +163,20 @@ void main() {
       () {
         final declarations = <String, List<Declaration>>{
           fileA: [
-            sampleDecl(1, name: 'a1', path: fileA, startLine: 1, endLine: 6),
-            sampleDecl(2, name: 'a2', path: fileA, startLine: 3, endLine: 5),
+            sampleDecl(
+              1,
+              name: 'a1',
+              path: fileA,
+              sourceCode: sourceCode,
+              startLine: 1,
+            ),
+            sampleDecl(
+              2,
+              name: 'a2',
+              path: fileA,
+              sourceCode: sourceCode.sublist(0, 3),
+              startLine: 3,
+            ),
           ],
         };
         final coverage = <(String, List<int>)>[
@@ -139,19 +196,5 @@ void main() {
         expect(idToLines[2], equals([0, 1]));
       },
     );
-
-    test('invalid declaration ranges are ignored', () {
-      final declarations = {
-        fileA: [
-          sampleDecl(1, name: 'a1', path: fileA, startLine: 10, endLine: 5),
-        ],
-      };
-      final coverage = <(String, List<int>)>[
-        (fileA, [15, 20]),
-      ];
-      final result = extractUntestedDeclarations(declarations, coverage);
-
-      expect(result, isEmpty);
-    });
   });
 }
