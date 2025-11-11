@@ -49,17 +49,17 @@ Future<Map<String, Declaration>> extractNamedDeclarationsFromFile(
 
 Declaration sampleDecl(
   int id, {
-  required String name,
-  required String path,
-  required List<String> sourceCode,
-  required int startLine,
-}) {
-  return Declaration(
-    id,
-    name: name,
-    sourceCode: sourceCode,
-    startLine: startLine,
-    endLine: startLine + sourceCode.length - 1,
-    path: path,
-  );
-}
+  String name = '',
+  String path = '',
+  List<String> sourceCode = const [],
+  int startLine = 1,
+  Declaration? parent,
+}) => Declaration(
+  id,
+  name: name,
+  sourceCode: sourceCode,
+  startLine: startLine,
+  endLine: startLine + sourceCode.length - 1,
+  path: path,
+  parent: parent,
+);

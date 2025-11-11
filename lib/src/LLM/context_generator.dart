@@ -1,3 +1,5 @@
+import 'dart:collection';
+
 import 'package:testgen/src/analyzer/declaration.dart';
 
 /// Builds a context map for a given [declaration], by traversing its
@@ -9,14 +11,23 @@ Map<Declaration?, List<Declaration>> buildDependencyContext(
   Declaration declaration, {
   int maxDepth = 1,
 }) {
-  final visitedDeclarations = <Declaration>{};
-  final parentMap = <Declaration?, List<Declaration>>{};
+  final parentMap = <Declaration?, Set<Declaration>>{};
 
   for (final dependency in declaration.dependsOn) {
-    _dfs(dependency, visitedDeclarations, parentMap, maxDepth: maxDepth);
+    _dfs(dependency, parentMap, maxDepth: maxDepth);
   }
 
-  return parentMap;
+  // Remove any declarations from the top-level list that are also keys.
+  final topLevel = parentMap[null]?.toList() ?? <Declaration>[];
+  for (final child in topLevel) {
+    if (parentMap.containsKey(child)) {
+      parentMap[null]?.remove(child);
+    }
+  }
+
+  return parentMap.map<Declaration?, List<Declaration>>(
+    (parent, set) => MapEntry(parent, set.toList()),
+  );
 }
 
 /// Formats the context map produced by [buildDependencyContext] into a
@@ -67,22 +78,19 @@ ${declaration.parent != null ? '}' : ''}
 
 void _dfs(
   Declaration declaration,
-  Set<Declaration> visitedDeclarations,
-  Map<Declaration?, List<Declaration>> parentMap, {
+  Map<Declaration?, Set<Declaration>> parentMap, {
   int currentDepth = 1,
   int maxDepth = 1,
 }) {
-  if (visitedDeclarations.contains(declaration) || currentDepth > maxDepth) {
+  if (currentDepth > maxDepth) {
     return;
   }
 
-  visitedDeclarations.add(declaration);
-  parentMap.putIfAbsent(declaration.parent, () => []).add(declaration);
+  parentMap.putIfAbsent(declaration.parent, () => HashSet()).add(declaration);
 
   for (final dependency in declaration.dependsOn) {
     _dfs(
       dependency,
-      visitedDeclarations,
       parentMap,
       currentDepth: currentDepth + 1,
       maxDepth: maxDepth,
