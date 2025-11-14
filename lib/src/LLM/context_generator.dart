@@ -2,6 +2,8 @@ import 'dart:collection';
 
 import 'package:testgen/src/analyzer/declaration.dart';
 
+const String indent = '  ';
+
 /// Builds a context map for a given [declaration], by traversing its
 /// dependencies up to [maxDepth] levels deep.
 ///
@@ -63,18 +65,33 @@ String formatContext(Map<Declaration?, List<Declaration>> parentMap) {
 String formatUntestedCode(Declaration declaration, List<int> lines) {
   final markedCode = List<String>.from(declaration.sourceCode);
   for (final line in lines) {
-    markedCode[line] += ' // UNTESTED';
+    markedCode[line] += '$indent// UNTESTED';
   }
 
-  return '''
-// Code Snippet package path: ${declaration.path}
-${declaration.parent?.toCode() ?? ''}
+  final hasParent = declaration.parent != null;
+  final buffer = StringBuffer();
+  buffer.writeln('// Code Snippet package path: ${declaration.path}');
 
-${markedCode.join('\n')}
+  if (hasParent) {
+    buffer
+      ..writeln(declaration.parent!.toCode())
+      ..writeln('$indent// rest of the code...');
+  }
 
-${declaration.parent != null ? '}' : ''}
-''';
+  buffer.writeln(hasParent ? _indentLines(markedCode) : markedCode.join('\n'));
+
+  if (hasParent) {
+    buffer
+      ..writeln("$indent// rest of the code...")
+      ..writeln('}');
+  }
+
+  return buffer.toString();
 }
+
+/// Join [lines] into a single string and prefix each line with 2 spaces.
+String _indentLines(List<String> lines) =>
+    lines.map((l) => l.trim().isEmpty ? '' : '$indent$l').join('\n');
 
 void _dfs(
   Declaration declaration,

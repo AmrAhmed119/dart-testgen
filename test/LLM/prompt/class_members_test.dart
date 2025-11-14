@@ -3,7 +3,7 @@ import 'package:testgen/src/LLM/context_generator.dart';
 import 'package:testgen/src/analyzer/declaration.dart';
 import 'package:path/path.dart' as path;
 
-import '../utils.dart';
+import '../../utils.dart';
 
 void main() {
   late Map<String, Declaration> decls;
