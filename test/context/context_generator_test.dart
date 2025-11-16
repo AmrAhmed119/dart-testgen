@@ -2,7 +2,7 @@ import 'package:test/test.dart';
 import 'package:testgen/src/LLM/context_generator.dart';
 import 'package:testgen/src/analyzer/declaration.dart';
 
-import '../../utils.dart';
+import '../utils.dart';
 
 void main() {
   final List<Declaration> decls = List.generate(10, (i) => sampleDecl(i));

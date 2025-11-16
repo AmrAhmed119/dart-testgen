@@ -1,7 +1,7 @@
 import 'package:test/test.dart';
 import 'package:testgen/src/LLM/context_generator.dart';
 
-import '../../utils.dart';
+import '../utils.dart';
 
 void main() {
   final pathA = 'package:pkg/src/a.dart';

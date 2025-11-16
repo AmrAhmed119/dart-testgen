@@ -31,7 +31,10 @@ Map<Declaration?, List<Declaration>> buildDependencyContext(
   }
 
   return parentMap.map<Declaration?, List<Declaration>>(
-    (parent, set) => MapEntry(parent, set.toList()),
+    (parent, set) => MapEntry(
+      parent,
+      set.toList()..sort((a, b) => a.name.compareTo(b.name)),
+    ),
   );
 }
 

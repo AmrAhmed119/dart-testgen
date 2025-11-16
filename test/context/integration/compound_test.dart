@@ -30,19 +30,18 @@ void main() {
         formattedContext,
         equals('''
 // Code Snippet package path: package:test_package/dependency_graph/compound.dart
-class Class1 { 
+abstract class Abstract1 { ... }
 
 // Code Snippet package path: package:test_package/dependency_graph/compound.dart
-abstract class Abstract1 { 
+abstract class Abstract2 { ... }
 
 // Code Snippet package path: package:test_package/dependency_graph/compound.dart
-abstract class Abstract2 { 
+class Class1 { ... }
 
 // Code Snippet package path: package:test_package/dependency_graph/compound.dart
 class Class2 extends Class1
     with Mixin1, Mixin2
-    implements Abstract1, Abstract2 { 
-
+    implements Abstract1, Abstract2 { ... }
 '''),
       );
     });
@@ -57,25 +56,24 @@ class Class2 extends Class1
         formattedContext,
         equals('''
 // Code Snippet package path: package:test_package/dependency_graph/compound.dart
-class Class1 { 
+abstract class Abstract1 { ... }
 
 // Code Snippet package path: package:test_package/dependency_graph/compound.dart
-abstract class Abstract1 { 
+abstract class Abstract2 { ... }
 
 // Code Snippet package path: package:test_package/dependency_graph/compound.dart
-abstract class Abstract2 { 
+class Class1 { ... }
 
 // Code Snippet package path: package:test_package/dependency_graph/compound.dart
 class Class2 extends Class1
     with Mixin1, Mixin2
-    implements Abstract1, Abstract2 { 
+    implements Abstract1, Abstract2 { ... }
 
 // Code Snippet package path: package:test_package/dependency_graph/compound.dart
-mixin Mixin1 { 
+mixin Mixin1 { ... }
 
 // Code Snippet package path: package:test_package/dependency_graph/compound.dart
-mixin Mixin2 { 
-
+mixin Mixin2 { ... }
 '''),
       );
     });
