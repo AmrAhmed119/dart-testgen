@@ -2,7 +2,10 @@ import 'dart:collection';
 
 import 'package:testgen/src/analyzer/declaration.dart';
 
-const String indent = '  ';
+const indent = '  ';
+const newLine = '\n';
+const rest = '// rest of the code...';
+const packagePathPrefix = '// Code Snippet package path: ';
 
 /// Builds a context map for a given [declaration], by traversing its
 /// dependencies up to [maxDepth] levels deep.
@@ -39,21 +42,33 @@ String formatContext(Map<Declaration?, List<Declaration>> parentMap) {
 
   for (final MapEntry(key: parent, value: children) in parentMap.entries) {
     if (parent != null) {
-      buffer.writeln('// Code Snippet package path: ${parent.path}');
+      buffer
+        ..writeln('$packagePathPrefix${parent.path}')
+        ..writeln(parent.toCode())
+        ..writeln('$indent$rest$newLine');
 
-      buffer.writeln('${parent.toCode()} \n');
-      buffer.writeln('// rest of the code... \n');
       for (final child in children) {
-        buffer.writeln('${child.toCode()} \n');
+        buffer.writeln('${child.sourceCode.join('\n')}$newLine');
       }
-      buffer.writeln('// rest of the code... \n');
-      buffer.writeln('} \n');
+
+      buffer
+        ..writeln('$indent$rest')
+        ..writeln('}');
     } else {
       for (final child in children) {
-        if (parentMap.containsKey(child)) continue;
-        buffer.writeln('// Code Snippet package path: ${child.path}');
-        buffer.writeln('${child.toCode()} \n');
+        final closing = child.toCode().endsWith('{') ? ' ... }' : '';
+        buffer
+          ..writeln('$packagePathPrefix${child.path}')
+          ..writeln(child.toCode() + closing);
+
+        if (child != children.last) {
+          buffer.writeln();
+        }
       }
+    }
+
+    if (parent != parentMap.keys.last) {
+      buffer.writeln();
     }
   }
 
@@ -70,28 +85,24 @@ String formatUntestedCode(Declaration declaration, List<int> lines) {
 
   final hasParent = declaration.parent != null;
   final buffer = StringBuffer();
-  buffer.writeln('// Code Snippet package path: ${declaration.path}');
+  buffer.writeln('$packagePathPrefix${declaration.path}');
 
   if (hasParent) {
     buffer
       ..writeln(declaration.parent!.toCode())
-      ..writeln('$indent// rest of the code...');
+      ..writeln('$indent$rest$newLine');
   }
 
-  buffer.writeln(hasParent ? _indentLines(markedCode) : markedCode.join('\n'));
+  buffer.writeln(markedCode.join('\n'));
 
   if (hasParent) {
     buffer
-      ..writeln("$indent// rest of the code...")
+      ..writeln("$newLine$indent$rest")
       ..writeln('}');
   }
 
   return buffer.toString();
 }
-
-/// Join [lines] into a single string and prefix each line with 2 spaces.
-String _indentLines(List<String> lines) =>
-    lines.map((l) => l.trim().isEmpty ? '' : '$indent$l').join('\n');
 
 void _dfs(
   Declaration declaration,
