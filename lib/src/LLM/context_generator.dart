@@ -1,5 +1,6 @@
 import 'dart:collection';
 
+import 'package:collection/collection.dart';
 import 'package:testgen/src/analyzer/declaration.dart';
 
 const indent = '  ';
@@ -23,18 +24,11 @@ Map<Declaration?, List<Declaration>> buildDependencyContext(
   }
 
   // Remove any declarations from the top-level list that are also keys.
-  final topLevel = parentMap[null]?.toList() ?? <Declaration>[];
-  for (final child in topLevel) {
-    if (parentMap.containsKey(child)) {
-      parentMap[null]?.remove(child);
-    }
-  }
+  parentMap[null]?.removeWhere((decl) => parentMap.containsKey(decl));
 
   return parentMap.map<Declaration?, List<Declaration>>(
-    (parent, set) => MapEntry(
-      parent,
-      set.toList()..sort((a, b) => a.name.compareTo(b.name)),
-    ),
+    (parent, set) =>
+        MapEntry(parent, set.toList()..sortBy((decl) => decl.name)),
   );
 }
 
@@ -45,25 +39,27 @@ String formatContext(Map<Declaration?, List<Declaration>> parentMap) {
 
   for (final MapEntry(key: parent, value: children) in parentMap.entries) {
     if (parent != null) {
-      buffer
-        ..writeln('$packagePathPrefix${parent.path}')
-        ..writeln(parent.toCode())
-        ..writeln('$indent$rest$newLine');
+      buffer.write('''
+$packagePathPrefix${parent.path}
+${parent.toCode()}
+$indent$rest$newLine
+''');
 
       for (final child in children) {
         buffer.writeln('${child.sourceCode.join('\n')}$newLine');
       }
 
-      buffer
-        ..writeln('$indent$rest')
-        ..writeln('}');
+      buffer.write(''' 
+$indent$rest
+}
+''');
     } else {
       for (final child in children) {
         final closing = child.toCode().endsWith('{') ? ' ... }' : '';
-        buffer
-          ..writeln('$packagePathPrefix${child.path}')
-          ..writeln(child.toCode() + closing);
-
+        buffer.write(''' 
+$packagePathPrefix${child.path}
+${child.toCode()}$closing
+''');
         if (child != children.last) {
           buffer.writeln();
         }
@@ -91,17 +87,19 @@ String formatUntestedCode(Declaration declaration, List<int> lines) {
   buffer.writeln('$packagePathPrefix${declaration.path}');
 
   if (hasParent) {
-    buffer
-      ..writeln(declaration.parent!.toCode())
-      ..writeln('$indent$rest$newLine');
+    buffer.write('''
+${declaration.parent!.toCode()}
+$indent$rest$newLine
+''');
   }
 
   buffer.writeln(markedCode.join('\n'));
 
   if (hasParent) {
-    buffer
-      ..writeln("$newLine$indent$rest")
-      ..writeln('}');
+    buffer.write('''
+$newLine$indent$rest
+}
+''');
   }
 
   return buffer.toString();
