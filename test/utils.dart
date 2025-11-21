@@ -46,3 +46,20 @@ Future<Map<String, Declaration>> extractNamedDeclarationsFromFile(
     for (final name in names) name: findDeclarationByName(declarations, name),
   };
 }
+
+Declaration sampleDecl(
+  int id, {
+  String name = '',
+  String path = '',
+  List<String> sourceCode = const [],
+  int startLine = 1,
+  Declaration? parent,
+}) => Declaration(
+  id,
+  name: name,
+  sourceCode: sourceCode,
+  startLine: startLine,
+  endLine: startLine + sourceCode.length - 1,
+  path: path,
+  parent: parent,
+);

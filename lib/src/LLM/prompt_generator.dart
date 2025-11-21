@@ -11,19 +11,26 @@ class PromptGenerator {
   const PromptGenerator();
 
   String testCode(String toBeTestedCode, String contextCode) {
-    return '''
+    final buffer = StringBuffer();
+
+    buffer.writeln('''
 Generate a Dart unit test for the following code:
 
 ```dart
 $toBeTestedCode
 ```
+''');
 
+    if (contextCode.trim().isNotEmpty) {
+      buffer.writeln('''
 With the following context:
-
 ```dart
 $contextCode
 ```
+''');
+    }
 
+    buffer.writeln('''
 Requirements:
 - Test ONLY the lines marked with `// UNTESTED` - ignore already tested code.
 - The provided code is partial, showing only relevant members.
@@ -36,7 +43,9 @@ Requirements:
 - Follow Dart testing best practices with descriptive test names.
 
 Return the complete test file with proper imports and test structure.
-''';
+''');
+
+    return buffer.toString();
   }
 
   String analysisError(String error) {

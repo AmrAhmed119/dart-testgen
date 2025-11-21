@@ -53,6 +53,11 @@ class Declaration {
   final Set<Declaration> dependsOn = {};
 
   void addDependency(Declaration declaration) {
+    if (declaration.id == id) {
+      throw ArgumentError(
+        'A declaration cannot depend on itself (id: $id, name: $name)',
+      );
+    }
     dependsOn.add(declaration);
   }
 
