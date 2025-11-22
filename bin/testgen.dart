@@ -1,3 +1,4 @@
+import 'dart:collection';
 import 'dart:io';
 
 import 'package:args/args.dart';
@@ -228,7 +229,7 @@ Future<void> main(List<String> arguments) async {
     declarationsByFile.putIfAbsent(declaration.path, () => []).add(declaration);
   }
 
-  final untestedDeclarations = extractUntestedDeclarations(
+  var untestedDeclarations = extractUntestedDeclarations(
     declarationsByFile,
     coverageByFile,
   );
@@ -245,13 +246,28 @@ Future<void> main(List<String> arguments) async {
     exit(1);
   }
 
-  int done = 0;
-  for (final (declaration, lines) in untestedDeclarations) {
+  final skippedOrFailedDeclarations = HashSet<int>();
+  final file = File(path.join(flags.package, 'prompt.log'));
+
+  while (untestedDeclarations.isNotEmpty) {
+    final idx = untestedDeclarations.indexWhere(
+      (pair) => !skippedOrFailedDeclarations.contains(pair.$1.id),
+    );
+    if (idx == -1) {
+      break;
+    }
+
+    final (declaration, lines) = untestedDeclarations[idx];
     print(
       '[testgen] Generating tests for ${declaration.name}, remaining: '
-      '${untestedDeclarations.length - done}',
+      '${untestedDeclarations.length - skippedOrFailedDeclarations.length}',
     );
-    done++;
+    await file.writeAsString(
+      '[testgen] Generating tests for ${declaration.name}, remaining: '
+      '${untestedDeclarations.length - skippedOrFailedDeclarations.length}\n',
+      mode: FileMode.append,
+    );
+
     final toBeTestedCode = formatUntestedCode(declaration, lines);
     final contextMap = buildDependencyContext(
       declaration,
@@ -284,6 +300,26 @@ Future<void> main(List<String> arguments) async {
         TestStatus.failed => red,
       }}$status$reset and used $tokens tokens.\n',
     );
+
+    if (status == TestStatus.created) {
+      final newCoverage = await runTestsAndCollectCoverage(
+        flags.package,
+        branchCoverage: flags.branchCoverage,
+        functionCoverage: flags.functionCoverage,
+        scopeOutput: flags.scopeOutput,
+      );
+      final newCoverageByFile = await formatCoverage(
+        newCoverage,
+        flags.package,
+      );
+
+      untestedDeclarations = extractUntestedDeclarations(
+        declarationsByFile,
+        newCoverageByFile,
+      );
+    } else {
+      skippedOrFailedDeclarations.add(declaration.id);
+    }
   }
 
   exit(0);
