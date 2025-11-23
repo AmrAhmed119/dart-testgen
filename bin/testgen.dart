@@ -247,7 +247,6 @@ Future<void> main(List<String> arguments) async {
   }
 
   final skippedOrFailedDeclarations = HashSet<int>();
-  final file = File(path.join(flags.package, 'prompt.log'));
 
   while (untestedDeclarations.isNotEmpty) {
     final idx = untestedDeclarations.indexWhere(
@@ -260,12 +259,7 @@ Future<void> main(List<String> arguments) async {
     final (declaration, lines) = untestedDeclarations[idx];
     print(
       '[testgen] Generating tests for ${declaration.name}, remaining: '
-      '${untestedDeclarations.length - skippedOrFailedDeclarations.length}',
-    );
-    await file.writeAsString(
-      '[testgen] Generating tests for ${declaration.name}, remaining: '
-      '${untestedDeclarations.length - skippedOrFailedDeclarations.length}\n',
-      mode: FileMode.append,
+      '${untestedDeclarations.length - skippedOrFailedDeclarations.length - 1}',
     );
 
     final toBeTestedCode = formatUntestedCode(declaration, lines);
