@@ -9,7 +9,7 @@ enum TestStatus { created, failed, skipped }
 /// Result object returned after attempting to generate tests.
 ///
 /// Contains:
-/// - the generated test file (or the file handler),
+/// - the generated test file,
 /// - final status of generation,
 /// - total consumed tokens,
 /// - number of attempts made.
@@ -27,8 +27,8 @@ class GenerationResponse {
   final int attempts;
 }
 
-/// Coordinates the LLM interaction, validation, and file writing
-/// required to generate a valid test for a Dart source file.
+/// Class coordinates the LLM interaction, validation, and file writing
+/// required to generate a valid test for a Dart source code.
 class TestGenerator {
   TestGenerator({
     required this.model,
@@ -57,11 +57,12 @@ class TestGenerator {
     return ValidationResult(isPassed: true);
   }
 
-  /// Generates a test file for the provided source code using the [model]. It takes
-  /// [toBeTestedCode] as the main code to test, [contextCode] to give the model
-  /// additional context about dependencies, and [fileName] to determine where the
-  /// generated test should be saved. The method prompts the LLM, validates the
-  /// output, retries on failure, and returns the final [GenerationResponse].
+  /// Generates a test file for the provided source code using the [model].
+  /// It takes [toBeTestedCode] as the main code to test, [contextCode] to give
+  /// the model additional context about dependencies, and [fileName] to
+  /// determine where the generated test should be saved.
+  /// The method prompts the LLM, validates the output, retries on failure, and
+  /// returns the final [GenerationResponse].
   Future<GenerationResponse> generate({
     required String toBeTestedCode,
     required String contextCode,
@@ -74,48 +75,48 @@ class TestGenerator {
     String prompt = promptGenerator.testCode(toBeTestedCode, contextCode);
 
     int attempt = 1;
-    for (; attempt <= maxRetries; attempt++) {
+    for (; attempt <= maxRetries && status == TestStatus.failed; attempt++) {
       print(
         '[LLM] Attempt $attempt / $maxRetries to generate test for $fileName',
       );
       try {
         final response = await chat.sendMessage(prompt);
+
+        // reset backoff on successful response
         backoff = initialBackoff;
 
-        if (!response.needTesting) {
+        if (response.needTesting) {
+          await testFile.writeTest(response.code);
+
+          final validation = await _runValidators(testFile, promptGenerator);
+
+          if (validation.isPassed) {
+            status = TestStatus.created;
+          } else {
+            prompt = validation.recoveryPrompt!;
+          }
+        } else {
           print('[LLM] No significant logic to test in $fileName. Skipping.');
           status = TestStatus.skipped;
-          break;
         }
-
-        await testFile.writeTest(response.code);
-
-        final validation = await _runValidators(testFile, promptGenerator);
-
-        if (!validation.isPassed) {
-          print('[Validator] Check failed.');
-          prompt = validation.recoveryPrompt!;
-          continue;
-        }
-
-        status = TestStatus.created;
-        break;
       } catch (e) {
         final errorMessage = e.toString().toLowerCase();
 
+        bool isRateLimitError =
+            errorMessage.contains('rate limit exceeded') ||
+            errorMessage.contains('you exceeded your current quota');
+
         // Exit only if the daily quota (RPD) exceeded and prevent exiting if
         // the quota exceeded for (RPM) or (TPM) by waiting at least a minute.
-        if (errorMessage.contains('you exceeded your current quota') &&
-            backoff.inSeconds >= 128) {
+        if (isRateLimitError && backoff.inSeconds >= 128) {
           status = TestStatus.failed;
           await testFile.deleteTest();
           throw StateError(
-            "You exceeded you daily quota, try again tomorrow or try another model",
+            'You exceeded your daily quota, try again later or change model',
           );
         }
 
-        if (errorMessage.contains('rate limit exceeded') ||
-            errorMessage.contains('you exceeded your current quota')) {
+        if (isRateLimitError) {
           print('[LLM] Rate limit exceeded, retrying in $backoff...');
           await Future.delayed(backoff);
           backoff *= 2;
