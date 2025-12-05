@@ -22,7 +22,7 @@ class GenerationResponse {
   });
 
   final TestFile testFile;
-  final TestStatus status;
+  TestStatus status;
   final int tokens;
   final int attempts;
 }

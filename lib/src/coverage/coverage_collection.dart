@@ -211,6 +211,18 @@ Future<CoverageData> formatCoverage(
       .toList();
 }
 
+int compareCoverageData(CoverageData a, CoverageData b) {
+  final uncoveredLinesA = a.fold<int>(
+    0,
+    (previousValue, element) => previousValue + element.$2.length,
+  );
+  final uncoveredLinesB = b.fold<int>(
+    0,
+    (previousValue, element) => previousValue + element.$2.length,
+  );
+  return uncoveredLinesA - uncoveredLinesB;
+}
+
 /// Evaluates whether a generated test file has successfully improved code
 /// coverage for a specific declaration.
 ///
@@ -221,19 +233,11 @@ Future<CoverageData> formatCoverage(
 Future<bool> validateTestCoverageImprovement({
   required Declaration declaration,
   required int baselineUncoveredLines,
-  required String packageDir,
-  required Set<String> scopeOutput,
+  required CoverageData coverage,
 }) async {
-  final coverage = await runTestsAndCollectCoverage(
-    packageDir,
-    isInternalCall: true,
-    scopeOutput: scopeOutput,
-  );
-  final coverageByFile = await formatCoverage(coverage, packageDir);
-
   int currentUncoveredLines = 0;
   final fileCoverage =
-      coverageByFile.where((pair) => pair.$1 == declaration.path).firstOrNull;
+      coverage.where((pair) => pair.$1 == declaration.path).firstOrNull;
 
   for (final line in fileCoverage?.$2 ?? <int>[]) {
     if (line >= declaration.startLine && line <= declaration.endLine) {

@@ -4,8 +4,8 @@ import 'dart:io';
 import 'package:args/args.dart';
 import 'package:path/path.dart' as path;
 import 'package:testgen/src/LLM/context_generator.dart';
-import 'package:testgen/src/LLM/llm.dart';
-import 'package:testgen/src/LLM/validator.dart';
+import 'package:testgen/src/LLM/model.dart';
+import 'package:testgen/src/LLM/test_generator.dart';
 import 'package:testgen/src/analyzer/declaration.dart';
 import 'package:testgen/src/analyzer/extractor.dart';
 import 'package:testgen/src/coverage/coverage_collection.dart';
@@ -234,7 +234,12 @@ Future<void> main(List<String> arguments) async {
     coverageByFile,
   );
 
-  final model = createModel(model: flags.model, apiKey: flags.apiKey);
+  final model = GeminiModel(modelName: flags.model, apiKey: flags.apiKey);
+  final testGenerator = TestGenerator(
+    model: model,
+    packagePath: flags.package,
+    maxRetries: flags.maxAttempts,
+  );
 
   final process = await Process.run('dart', [
     'pub',
@@ -269,44 +274,47 @@ Future<void> main(List<String> arguments) async {
     );
     final contextCode = formatContext(contextMap);
 
-    final (status, chat) = await generateTestFile(
-      model: model,
+    final result = await testGenerator.generate(
       toBeTestedCode: toBeTestedCode,
       contextCode: contextCode,
-      packagePath: flags.package,
       fileName: '${declaration.name}_${declaration.id}_test.dart',
-      maxRetries: flags.maxAttempts,
-      coverageValidator:
-          flags.effectiveTestsOnly
-              ? CoverageValidator(
-                declaration,
-                lines.length,
-                flags.package,
-                flags.scopeOutput.first,
-              )
-              : null,
     );
-    final tokens = await countTokens(model, chat);
+
+    final newCoverage = await runTestsAndCollectCoverage(
+      flags.package,
+      branchCoverage: flags.branchCoverage,
+      functionCoverage: flags.functionCoverage,
+      scopeOutput: flags.scopeOutput,
+      isInternalCall: true,
+    );
+    final newCoverageByFile = await formatCoverage(newCoverage, flags.package);
+
+    if (flags.effectiveTestsOnly && result.status == TestStatus.created) {
+      final isImproved = await validateTestCoverageImprovement(
+        declaration: declaration,
+        baselineUncoveredLines: lines.length,
+        coverage: newCoverageByFile,
+      );
+
+      if (!isImproved) {
+        print(
+          '[testgen] Generated tests for ${declaration.name} did not improve '
+          'coverage. Discarding...\n',
+        );
+        await result.testFile.deleteTest();
+        result.status = TestStatus.failed;
+      }
+    }
+
     print(
-      '[testgen] Test generation ended with ${switch (status) {
+      '[testgen] Test generation ended with ${switch (result.status) {
         TestStatus.created => green,
         TestStatus.skipped => yellow,
         TestStatus.failed => red,
-      }}$status$reset and used $tokens tokens.\n',
+      }}${result.status}$reset and used ${result.tokens} tokens.\n',
     );
 
-    if (status == TestStatus.created) {
-      final newCoverage = await runTestsAndCollectCoverage(
-        flags.package,
-        branchCoverage: flags.branchCoverage,
-        functionCoverage: flags.functionCoverage,
-        scopeOutput: flags.scopeOutput,
-      );
-      final newCoverageByFile = await formatCoverage(
-        newCoverage,
-        flags.package,
-      );
-
+    if (result.status == TestStatus.created) {
       untestedDeclarations = extractUntestedDeclarations(
         declarationsByFile,
         newCoverageByFile,

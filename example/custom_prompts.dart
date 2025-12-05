@@ -50,7 +50,13 @@ Future<void> main() async {
     coverageByFile,
   );
 
-  final model = createModel(model: modelName);
+  final model = GeminiModel(modelName: modelName);
+  final testGenerator = TestGenerator(
+    model: model,
+    packagePath: packagePath,
+    promptGenerator: CustomPromptGenerator(),
+    maxRetries: 5,
+  );
 
   for (final (declaration, lines) in untestedDeclarations) {
     print(
@@ -61,27 +67,15 @@ Future<void> main() async {
     final contextMap = buildDependencyContext(declaration, maxDepth: 5);
     final contextCode = formatContext(contextMap);
 
-    final (status, chat) = await generateTestFile(
-      model: model,
+    final response = await testGenerator.generate(
       toBeTestedCode: toBeTestedCode,
       contextCode: contextCode,
-      packagePath: packagePath,
       fileName: '${declaration.name}_${declaration.id}_test.dart',
-      promptGen: CustomPromptGenerator(),
-      // In case you want to keep tests that improve code coverage only
-      coverageValidator: CoverageValidator(
-        declaration,
-        lines.length,
-        packagePath,
-        scopeOutput,
-      ),
-      initialBackoff: Duration(seconds: 16),
-      maxRetries: 10,
     );
-    final tokens = await countTokens(model, chat);
+
     print(
       '[testgen] Finished generating tests for ${declaration.name} with '
-      'status $status using $tokens tokens.',
+      'status ${response.status} using ${response.tokens} tokens.',
     );
   }
 }
