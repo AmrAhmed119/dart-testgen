@@ -11,11 +11,6 @@ import 'package:testgen/src/analyzer/extractor.dart';
 import 'package:testgen/src/coverage/coverage_collection.dart';
 import 'package:testgen/src/coverage/util.dart';
 
-const String reset = '\x1b[0m';
-const String red = '\x1b[31m';
-const String green = '\x1b[32m';
-const String yellow = '\x1b[33m';
-
 ArgParser _createArgParser() =>
     ArgParser()
       ..addOption(
@@ -280,20 +275,18 @@ Future<void> main(List<String> arguments) async {
       fileName: '${declaration.name}_${declaration.id}_test.dart',
     );
 
-    final newCoverage = await runTestsAndCollectCoverage(
-      flags.package,
-      branchCoverage: flags.branchCoverage,
-      functionCoverage: flags.functionCoverage,
-      scopeOutput: flags.scopeOutput,
-      isInternalCall: true,
-    );
-    final newCoverageByFile = await formatCoverage(newCoverage, flags.package);
+    print(result);
 
+    bool isTestDeleted = result.status != TestStatus.created;
     if (flags.effectiveTestsOnly && result.status == TestStatus.created) {
       final isImproved = await validateTestCoverageImprovement(
         declaration: declaration,
         baselineUncoveredLines: lines.length,
-        coverage: newCoverageByFile,
+        packageDir: flags.package,
+        scopeOutput: flags.scopeOutput,
+        vmServicePort: flags.vmServicePort,
+        branchCoverage: flags.branchCoverage,
+        functionCoverage: flags.functionCoverage,
       );
 
       if (!isImproved) {
@@ -302,19 +295,21 @@ Future<void> main(List<String> arguments) async {
           'coverage. Discarding...\n',
         );
         await result.testFile.deleteTest();
-        result.status = TestStatus.failed;
+        isTestDeleted = true;
       }
     }
 
-    print(
-      '[testgen] Test generation ended with ${switch (result.status) {
-        TestStatus.created => green,
-        TestStatus.skipped => yellow,
-        TestStatus.failed => red,
-      }}${result.status}$reset and used ${result.tokens} tokens.\n',
+    final newCoverage = await runTestsAndCollectCoverage(
+      flags.package,
+      vmServicePort: flags.vmServicePort,
+      branchCoverage: flags.branchCoverage,
+      functionCoverage: flags.functionCoverage,
+      scopeOutput: flags.scopeOutput,
+      isInternalCall: true,
     );
+    final newCoverageByFile = await formatCoverage(newCoverage, flags.package);
 
-    if (result.status == TestStatus.created) {
+    if (result.status == TestStatus.created && !isTestDeleted) {
       untestedDeclarations = extractUntestedDeclarations(
         declarationsByFile,
         newCoverageByFile,

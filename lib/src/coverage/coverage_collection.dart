@@ -211,33 +211,31 @@ Future<CoverageData> formatCoverage(
       .toList();
 }
 
-int compareCoverageData(CoverageData a, CoverageData b) {
-  final uncoveredLinesA = a.fold<int>(
-    0,
-    (previousValue, element) => previousValue + element.$2.length,
-  );
-  final uncoveredLinesB = b.fold<int>(
-    0,
-    (previousValue, element) => previousValue + element.$2.length,
-  );
-  return uncoveredLinesA - uncoveredLinesB;
-}
-
-/// Evaluates whether a generated test file has successfully improved code
-/// coverage for a specific declaration.
-///
-/// This function runs test after a new test has been generated and compares
-/// the current coverage metrics against the baseline coverage metrics that were
-/// recorded before test generation. It determines if the newly generated test
-/// is actually hitting the previously uncovered lines.
+/// Called after generating a test for the given [declaration] to check whether
+/// coverage improved by comparing current uncovered lines with those
+/// before the test was generated.
 Future<bool> validateTestCoverageImprovement({
   required Declaration declaration,
   required int baselineUncoveredLines,
-  required CoverageData coverage,
+  required String packageDir,
+  required Set<String> scopeOutput,
+  String vmServicePort = '0',
+  bool branchCoverage = false,
+  bool functionCoverage = false,
 }) async {
+  final coverage = await runTestsAndCollectCoverage(
+    packageDir,
+    scopeOutput: scopeOutput,
+    vmServicePort: vmServicePort,
+    branchCoverage: branchCoverage,
+    functionCoverage: functionCoverage,
+    isInternalCall: true,
+  );
+  final coverageByFile = await formatCoverage(coverage, packageDir);
+
   int currentUncoveredLines = 0;
   final fileCoverage =
-      coverage.where((pair) => pair.$1 == declaration.path).firstOrNull;
+      coverageByFile.where((pair) => pair.$1 == declaration.path).firstOrNull;
 
   for (final line in fileCoverage?.$2 ?? <int>[]) {
     if (line >= declaration.startLine && line <= declaration.endLine) {

@@ -10,7 +10,7 @@ enum TestStatus { created, failed, skipped }
 ///
 /// Contains:
 /// - the generated test file,
-/// - final status of generation,
+/// - final status of test generation,
 /// - total consumed tokens,
 /// - number of attempts made.
 class GenerationResponse {
@@ -22,9 +22,26 @@ class GenerationResponse {
   });
 
   final TestFile testFile;
-  TestStatus status;
+  final TestStatus status;
   final int tokens;
   final int attempts;
+
+  @override
+  String toString() {
+    const String reset = '\x1b[0m';
+    const String red = '\x1b[31m';
+    const String green = '\x1b[32m';
+    const String yellow = '\x1b[33m';
+
+    return '''[testgen] Test generation ended with ${switch (status) {
+      TestStatus.created => green,
+      TestStatus.skipped => yellow,
+      TestStatus.failed => red,
+    }}$status$reset and used $tokens tokens.
+      With $attempts attempt(s) including ${testFile.analyzerErrors} analyzer
+      errors and ${testFile.testErrors} test errors.
+      ''';
+  }
 }
 
 /// Class coordinates the LLM interaction, validation, and file writing
@@ -61,6 +78,7 @@ class TestGenerator {
   /// It takes [toBeTestedCode] as the main code to test, [contextCode] to give
   /// the model additional context about dependencies, and [fileName] to
   /// determine where the generated test should be saved.
+  ///
   /// The method prompts the LLM, validates the output, retries on failure, and
   /// returns the final [GenerationResponse].
   Future<GenerationResponse> generate({
