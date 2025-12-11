@@ -1,11 +1,9 @@
 import 'package:testgen/src/LLM/prompt_generator.dart';
 import 'package:testgen/src/LLM/test_file.dart';
-import 'package:testgen/src/analyzer/declaration.dart';
-import 'package:testgen/src/coverage/coverage_collection.dart';
 
 /// List of standard validators that are run on generated test files.
 /// These validators must be passed before a test file is considered valid.
-final validators = List.unmodifiable([
+final validators = List<Validator>.unmodifiable([
   AnalysisValidator(),
   TestExecutionValidator(),
   FormatValidator(),
@@ -84,33 +82,5 @@ final class FormatValidator implements Validator {
       isPassed: !hasErrors,
       recoveryPrompt: hasErrors ? promptGen.formatError(errors) : null,
     );
-  }
-}
-
-/// Validates that the generated tests improve code coverage for the target
-/// declaration.
-final class CoverageValidator implements Validator {
-  final String packagePath;
-  final Declaration declaration;
-  final int untestedLines;
-  final String scopeOutput;
-
-  CoverageValidator(
-    this.declaration,
-    this.untestedLines,
-    this.packagePath,
-    this.scopeOutput,
-  );
-
-  @override
-  Future<ValidationResult> validate(_, _) async {
-    print('[Validator] Running coverage validation...');
-    final isImproved = await validateTestCoverageImprovement(
-      declaration: declaration,
-      baselineUncoveredLines: untestedLines,
-      packageDir: packagePath,
-      scopeOutput: {scopeOutput},
-    );
-    return ValidationResult(isPassed: isImproved);
   }
 }

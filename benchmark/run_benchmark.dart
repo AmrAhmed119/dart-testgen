@@ -3,9 +3,9 @@ import 'dart:io';
 import 'dart:math';
 
 import 'package:benchmark_harness/benchmark_harness.dart';
-import 'package:google_generative_ai/google_generative_ai.dart';
 import 'package:testgen/src/LLM/context_generator.dart';
-import 'package:testgen/src/LLM/llm.dart';
+import 'package:testgen/src/LLM/model.dart';
+import 'package:testgen/src/LLM/test_generator.dart';
 import 'package:testgen/src/analyzer/declaration.dart';
 import 'package:testgen/src/analyzer/extractor.dart';
 import 'package:testgen/src/coverage/coverage_collection.dart';
@@ -83,16 +83,16 @@ class BenchmarkResultsCollector {
 
 class TestGenBenchmark extends AsyncBenchmarkBase {
   final String packagePath;
-  final GenerativeModel model;
+  final TestGenerator testGenerator;
   final int contextDepth;
   final Map<String, List<Declaration>> declarationsByFile;
   final List<(Declaration declaration, List<int> lines)> declarationsToProcess;
-  final Map<int, (TestStatus status, ChatSession chat)> _results = {};
+  final Map<int, GenerationResponse> _results = {};
 
   TestGenBenchmark(
     super.name, {
     required this.packagePath,
-    required this.model,
+    required this.testGenerator,
     required this.contextDepth,
     required this.declarationsByFile,
     required this.declarationsToProcess,
@@ -108,11 +108,9 @@ class TestGenBenchmark extends AsyncBenchmarkBase {
       );
       final contextCode = formatContext(contextMap);
 
-      _results[declaration.id] = await generateTestFile(
-        model: model,
+      _results[declaration.id] = await testGenerator.generate(
         toBeTestedCode: toBeTestedCode,
         contextCode: contextCode,
-        packagePath: packagePath,
         fileName: '${declaration.name}_${declaration.id}_test.dart',
       );
     }
@@ -142,9 +140,9 @@ class TestGenBenchmark extends AsyncBenchmarkBase {
     final List<int> tokenCounts = [];
 
     for (final entry in _results.entries) {
-      final (status, chat) = entry.value;
+      final response = entry.value;
 
-      switch (status) {
+      switch (response.status) {
         case TestStatus.created:
           successfulTests++;
           break;
@@ -155,7 +153,7 @@ class TestGenBenchmark extends AsyncBenchmarkBase {
           failedTests++;
       }
 
-      tokenCounts.add(await countTokens(model, chat));
+      tokenCounts.add(response.tokens);
     }
 
     tokenCounts.sort();
@@ -234,10 +232,16 @@ void main() async {
 
     for (final model in models) {
       for (final contextDepth in contextDepths) {
+        final geminiModel = GeminiModel(modelName: model, apiKey: apiKey);
+        final testGenerator = TestGenerator(
+          model: geminiModel,
+          packagePath: packagePath,
+        );
+
         await TestGenBenchmark(
           'pkg:$packageName|model:$model|ctx:$contextDepth',
           packagePath: packagePath,
-          model: createModel(model: model, apiKey: apiKey),
+          testGenerator: testGenerator,
           contextDepth: contextDepth,
           declarationsByFile: declarationsByFile,
           declarationsToProcess: declarationsToProcess,

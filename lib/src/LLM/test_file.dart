@@ -13,6 +13,8 @@ import 'package:path/path.dart' as path;
 class TestFile {
   final String testFilePath;
   final String packagePath;
+  int analyzerErrors = 0;
+  int testErrors = 0;
 
   TestFile(this.packagePath, String fileName)
     : testFilePath = path.join(
@@ -54,6 +56,8 @@ class TestFile {
             .map((error) => '${error.errorCode}: ${error.message}')
             .toList();
 
+    analyzerErrors += errors.isNotEmpty ? 1 : 0;
+
     return errors.isEmpty ? null : errors.join('\n');
   }
 
@@ -62,6 +66,8 @@ class TestFile {
       'test',
       testFilePath,
     ], workingDirectory: packagePath);
+
+    testErrors += result.exitCode != 0 ? 1 : 0;
 
     return result.exitCode != 0 ? result.stdout.toString() : null;
   }
