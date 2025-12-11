@@ -53,7 +53,9 @@ class GeminiModel {
         ),
         'needTesting': Schema.boolean(
           description:
-              'True only if the code contains non-trivial logic requiring tests.',
+              'True only if the code snippet can be usefully tested. '
+              'False for trivial getters/setters, data classes, or asserts '
+              'that do not make sense to test.',
           nullable: false,
         ),
       },
