@@ -18,15 +18,14 @@ void main() {
       final decls = await extractDeclarations(testPackage);
 
       final actualFiles = decls.map((d) => d.path).toSet();
-      final expectedFiles =
-          Directory(testPackage)
-              .listSync(recursive: true)
-              .whereType<File>()
-              .where((file) => file.path.endsWith('.dart'))
-              .map((file) {
-                return config?.toPackageUri(file.absolute.uri).toString();
-              })
-              .toSet();
+      final expectedFiles = Directory(testPackage)
+          .listSync(recursive: true)
+          .whereType<File>()
+          .where((file) => file.path.endsWith('.dart'))
+          .map((file) {
+            return config?.toPackageUri(file.absolute.uri).toString();
+          })
+          .toSet();
 
       expect(expectedFiles, actualFiles);
     });
@@ -43,10 +42,9 @@ void main() {
       );
 
       final actualFiles = decls.map((d) => d.path).toSet();
-      final expectedFiles =
-          targetFiles.map((file) {
-            return config?.toPackageUri(File(file).absolute.uri).toString();
-          }).toSet();
+      final expectedFiles = targetFiles.map((file) {
+        return config?.toPackageUri(File(file).absolute.uri).toString();
+      }).toSet();
 
       expect(expectedFiles, hasLength(2));
       expect(expectedFiles, actualFiles);

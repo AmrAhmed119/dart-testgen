@@ -234,8 +234,9 @@ Future<bool> validateTestCoverageImprovement({
   final coverageByFile = await formatCoverage(coverage, packageDir);
 
   int currentUncoveredLines = 0;
-  final fileCoverage =
-      coverageByFile.where((pair) => pair.$1 == declaration.path).firstOrNull;
+  final fileCoverage = coverageByFile
+      .where((pair) => pair.$1 == declaration.path)
+      .firstOrNull;
 
   for (final line in fileCoverage?.$2 ?? <int>[]) {
     if (line >= declaration.startLine && line <= declaration.endLine) {

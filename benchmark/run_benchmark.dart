@@ -192,12 +192,11 @@ void main() async {
   final benchmarkDataDir = Directory(
     path.join(Directory.current.path, 'benchmark', 'data'),
   );
-  final availablePackagePaths =
-      benchmarkDataDir
-          .listSync()
-          .whereType<Directory>()
-          .map((dir) => dir.absolute.path)
-          .toList();
+  final availablePackagePaths = benchmarkDataDir
+      .listSync()
+      .whereType<Directory>()
+      .map((dir) => dir.absolute.path)
+      .toList();
 
   for (final packagePath in availablePackagePaths) {
     final packageName = path.basename(packagePath);
@@ -219,10 +218,9 @@ void main() async {
       declarationsByFile,
       coverageByFile,
     );
-    final declarationsToProcess =
-        (untestedDeclarations..shuffle(Random()))
-            .take(maxDeclarationsToProcess)
-            .toList();
+    final declarationsToProcess = (untestedDeclarations..shuffle(Random()))
+        .take(maxDeclarationsToProcess)
+        .toList();
 
     await Process.run('dart', [
       'pub',

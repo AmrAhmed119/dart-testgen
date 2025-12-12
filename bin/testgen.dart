@@ -11,75 +11,72 @@ import 'package:testgen/src/analyzer/extractor.dart';
 import 'package:testgen/src/coverage/coverage_collection.dart';
 import 'package:testgen/src/coverage/util.dart';
 
-ArgParser _createArgParser() =>
-    ArgParser()
-      ..addOption(
-        'package',
-        defaultsTo: '.',
-        help: 'Root directory of the package to test.',
-      )
-      ..addMultiOption(
-        'target-files',
-        defaultsTo: [],
-        help:
-            'Limit test generation to specific dart files inside the package.',
-        valueHelp: 'lib/foo.dart,lib/src/temp.dart',
-      )
-      ..addOption(
-        'port',
-        defaultsTo: '0',
-        help: 'VM service port. Defaults to using any free port.',
-      )
-      ..addFlag(
-        'function-coverage',
-        abbr: 'f',
-        defaultsTo: false,
-        help: 'Collect function coverage info.',
-      )
-      ..addFlag(
-        'branch-coverage',
-        abbr: 'b',
-        defaultsTo: false,
-        help: 'Collect branch coverage info.',
-      )
-      ..addMultiOption(
-        'scope-output',
-        defaultsTo: [],
-        help:
-            'restrict coverage results so that only scripts that start with '
-            'the provided package path are considered. Defaults to the name of '
-            'the current package (including all subpackages, if this is a '
-            'workspace).',
-      )
-      ..addOption(
-        'model',
-        defaultsTo: 'gemini-2.5-pro',
-        help: 'Gemini model to use for generating tests.',
-      )
-      ..addOption(
-        'api-key',
-        defaultsTo: Platform.environment['GEMINI_API_KEY'],
-        help:
-            'Gemini API key for authentication (or set GEMINI_API_KEY env var).',
-      )
-      ..addOption(
-        'max-depth',
-        defaultsTo: '2',
-        help: 'Maximum dependency depth for context generation.',
-      )
-      ..addOption(
-        'max-attempts',
-        defaultsTo: '5',
-        help:
-            'Maximum number of attempts to generate tests for each declaration on failure.',
-      )
-      ..addFlag(
-        'effective-tests-only',
-        defaultsTo: false,
-        help:
-            'Restrict test generation to only create tests that increase coverage.',
-      )
-      ..addFlag('help', abbr: 'h', negatable: false, help: 'Show this help.');
+ArgParser _createArgParser() => ArgParser()
+  ..addOption(
+    'package',
+    defaultsTo: '.',
+    help: 'Root directory of the package to test.',
+  )
+  ..addMultiOption(
+    'target-files',
+    defaultsTo: [],
+    help: 'Limit test generation to specific dart files inside the package.',
+    valueHelp: 'lib/foo.dart,lib/src/temp.dart',
+  )
+  ..addOption(
+    'port',
+    defaultsTo: '0',
+    help: 'VM service port. Defaults to using any free port.',
+  )
+  ..addFlag(
+    'function-coverage',
+    abbr: 'f',
+    defaultsTo: false,
+    help: 'Collect function coverage info.',
+  )
+  ..addFlag(
+    'branch-coverage',
+    abbr: 'b',
+    defaultsTo: false,
+    help: 'Collect branch coverage info.',
+  )
+  ..addMultiOption(
+    'scope-output',
+    defaultsTo: [],
+    help:
+        'restrict coverage results so that only scripts that start with '
+        'the provided package path are considered. Defaults to the name of '
+        'the current package (including all subpackages, if this is a '
+        'workspace).',
+  )
+  ..addOption(
+    'model',
+    defaultsTo: 'gemini-2.5-pro',
+    help: 'Gemini model to use for generating tests.',
+  )
+  ..addOption(
+    'api-key',
+    defaultsTo: Platform.environment['GEMINI_API_KEY'],
+    help: 'Gemini API key for authentication (or set GEMINI_API_KEY env var).',
+  )
+  ..addOption(
+    'max-depth',
+    defaultsTo: '2',
+    help: 'Maximum dependency depth for context generation.',
+  )
+  ..addOption(
+    'max-attempts',
+    defaultsTo: '5',
+    help:
+        'Maximum number of attempts to generate tests for each declaration on failure.',
+  )
+  ..addFlag(
+    'effective-tests-only',
+    defaultsTo: false,
+    help:
+        'Restrict test generation to only create tests that increase coverage.',
+  )
+  ..addFlag('help', abbr: 'h', negatable: false, help: 'Show this help.');
 
 class Flags {
   const Flags({
@@ -155,24 +152,20 @@ ${parser.usage}
   }
 
   final libDir = path.join(packageDir, 'lib');
-  final targetFiles =
-      (results['target-files'] as List<String>).map((file) {
-        final fullPath = path.normalize(path.join(packageDir, file));
+  final targetFiles = (results['target-files'] as List<String>).map((file) {
+    final fullPath = path.normalize(path.join(packageDir, file));
 
-        if (!file.endsWith('.dart') ||
-            !path.isWithin(libDir, fullPath) ||
-            !FileSystemEntity.isFileSync(fullPath)) {
-          fail(
-            'target-files must contain dart files exist inside lib directory',
-          );
-        }
-        return fullPath;
-      }).toList();
+    if (!file.endsWith('.dart') ||
+        !path.isWithin(libDir, fullPath) ||
+        !FileSystemEntity.isFileSync(fullPath)) {
+      fail('target-files must contain dart files exist inside lib directory');
+    }
+    return fullPath;
+  }).toList();
 
-  final scopes =
-      results['scope-output'].isEmpty
-          ? getAllWorkspaceNames(packageDir)
-          : results['scope-output'] as List<String>;
+  final scopes = results['scope-output'].isEmpty
+      ? getAllWorkspaceNames(packageDir)
+      : results['scope-output'] as List<String>;
 
   if (scopes.length != 1) {
     fail(

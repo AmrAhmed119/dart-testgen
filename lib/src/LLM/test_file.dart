@@ -50,11 +50,10 @@ class TestFile {
     final content = await File(testFilePath).readAsString();
     final result = parseString(content: content);
 
-    final errors =
-        result.errors
-            .where((error) => error.severity == Severity.error)
-            .map((error) => '${error.errorCode}: ${error.message}')
-            .toList();
+    final errors = result.errors
+        .where((error) => error.severity == Severity.error)
+        .map((error) => '${error.diagnosticCode}: ${error.message}')
+        .toList();
 
     analyzerErrors += errors.isNotEmpty ? 1 : 0;
 

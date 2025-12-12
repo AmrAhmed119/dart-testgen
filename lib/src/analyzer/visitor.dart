@@ -1,6 +1,6 @@
 import 'package:analyzer/dart/ast/ast.dart' as ast;
 import 'package:analyzer/dart/ast/visitor.dart';
-import 'package:analyzer/dart/element/element2.dart';
+import 'package:analyzer/dart/element/element.dart';
 import 'package:testgen/src/analyzer/declaration.dart';
 
 class DependencyVisitor extends RecursiveAstVisitor<void> {
@@ -19,7 +19,7 @@ class DependencyVisitor extends RecursiveAstVisitor<void> {
   // Captures type references such as class names, type parameters.
   @override
   void visitNamedType(ast.NamedType node) {
-    _addDependencyById(node.element2?.id);
+    _addDependencyById(node.element?.id);
     super.visitNamedType(node);
   }
 
@@ -40,21 +40,21 @@ class DependencyVisitor extends RecursiveAstVisitor<void> {
 
     // Handle the case where the element is an implicit getter so we need to
     // capture the underlying variable id.
-    if (element is PropertyAccessorElement2) {
-      _addDependencyById(element.variable3?.id);
+    if (element is PropertyAccessorElement) {
+      _addDependencyById(element.variable.id);
     }
     super.visitSimpleIdentifier(node);
   }
 
   @override
   void visitAssignmentExpression(ast.AssignmentExpression node) {
-    final element = node.writeElement2;
+    final element = node.writeElement;
     _addDependencyById(element?.id);
 
     // Handle the case where the element is an implicit setter so we need to
     // capture the underlying variable id.
     if (element is SetterElement) {
-      _addDependencyById(element.variable3?.id);
+      _addDependencyById(element.variable.id);
     }
     super.visitAssignmentExpression(node);
   }
