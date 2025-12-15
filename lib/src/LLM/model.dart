@@ -11,7 +11,7 @@ class GeminiModel {
     String? apiKey,
     String systemInstruction =
         'You are a code assistant that generates Dart test '
-            'cases based on provided code snippets.',
+        'cases based on provided code snippets.',
     int candidateCount = 1,
     double temperature = 0.2,
     double topP = 0.95,

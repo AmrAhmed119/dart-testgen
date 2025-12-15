@@ -34,13 +34,12 @@ Future<List<Declaration>> extractDeclarations(
     throw ArgumentError('Directory "$package" does not contain a lib folder');
   }
 
-  final dartFiles =
-      libDir
-          .listSync(recursive: true)
-          .whereType<File>()
-          .where((file) => file.path.endsWith('.dart'))
-          .map((file) => file.path)
-          .toList();
+  final dartFiles = libDir
+      .listSync(recursive: true)
+      .whereType<File>()
+      .where((file) => file.path.endsWith('.dart'))
+      .map((file) => file.path)
+      .toList();
 
   final visitedDeclarations = <int, Declaration>{};
 
@@ -79,10 +78,9 @@ Future<List<Declaration>> extractDeclarations(
   final allDeclarations = visitedDeclarations.values.toList();
 
   if (targetFiles.isNotEmpty) {
-    final targetSet =
-        targetFiles
-            .map((file) => config.toPackageUri(File(file).uri).toString())
-            .toSet();
+    final targetSet = targetFiles
+        .map((file) => config.toPackageUri(File(file).uri).toString())
+        .toSet();
     return allDeclarations.where((d) => targetSet.contains(d.path)).toList();
   }
 

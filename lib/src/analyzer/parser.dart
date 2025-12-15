@@ -85,8 +85,9 @@ Declaration _parseDeclaration(
           groupEnd ?? declaration.end,
         )
         .split('\n'),
-    startLine:
-        lineInfo.getLocation(groupOffset ?? declaration.offset).lineNumber,
+    startLine: lineInfo
+        .getLocation(groupOffset ?? declaration.offset)
+        .lineNumber,
     endLine: lineInfo.getLocation(groupEnd ?? declaration.end).lineNumber,
     path: path,
     parent: parent,
@@ -234,10 +235,9 @@ void _parseClassMembers(
           lineInfo,
           path,
           content,
-          name:
-              member.name?.lexeme != null
-                  ? '${parent.name}.${member.name!.lexeme}'
-                  : parent.name,
+          name: member.name?.lexeme != null
+              ? '${parent.name}.${member.name!.lexeme}'
+              : parent.name,
           parent: parent,
         );
         break;

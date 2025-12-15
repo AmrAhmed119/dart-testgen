@@ -12,7 +12,7 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Setup Dart
         uses: dart-lang/setup-dart@v1
@@ -21,6 +21,9 @@ jobs:
 
       - name: Install dependencies
         run: dart pub get
+
+      - name: Generate mocks
+        run: dart run build_runner build --delete-conflicting-outputs
 
       - name: Format code
         run: dart format --output=none --set-exit-if-changed .
