@@ -3,7 +3,7 @@ import 'package:testgen/src/LLM/test_file.dart';
 
 /// List of standard validators that are run on generated test files.
 /// These validators must be passed before a test file is considered valid.
-final validators = List<Validator>.unmodifiable([
+final defaultValidators = List<Validator>.unmodifiable([
   AnalysisValidator(),
   TestExecutionValidator(),
   FormatValidator(),

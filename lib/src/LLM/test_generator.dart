@@ -2,7 +2,7 @@ import 'package:testgen/src/LLM/model.dart';
 import 'package:testgen/src/LLM/prompt_generator.dart';
 import 'package:testgen/src/LLM/test_file.dart';
 import 'package:testgen/src/LLM/validator.dart'
-    show validators, ValidationResult;
+    show defaultValidators, ValidationResult;
 
 enum TestStatus { created, failed, skipped }
 
@@ -65,7 +65,7 @@ class TestGenerator {
     TestFile testFile,
     PromptGenerator promptGenerator,
   ) async {
-    for (final check in validators) {
+    for (final check in defaultValidators) {
       final checkResult = await check.validate(testFile, promptGenerator);
       if (!checkResult.isPassed) {
         return checkResult;
