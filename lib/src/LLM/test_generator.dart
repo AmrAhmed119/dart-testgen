@@ -1,8 +1,9 @@
+import 'dart:math';
+
 import 'package:testgen/src/LLM/model.dart';
 import 'package:testgen/src/LLM/prompt_generator.dart';
 import 'package:testgen/src/LLM/test_file.dart';
-import 'package:testgen/src/LLM/validator.dart'
-    show defaultValidators, ValidationResult;
+import 'package:testgen/src/LLM/validator.dart';
 
 enum TestStatus { created, failed, skipped }
 
@@ -51,13 +52,22 @@ class TestGenerator {
     required this.model,
     required this.packagePath,
     this.promptGenerator = const PromptGenerator(),
+    List<Validator>? validators,
     this.maxRetries = 5,
     this.initialBackoff = const Duration(seconds: 32),
-  });
+  }) : validators = validators ?? defaultValidators {
+    if (this.validators.every((v) => v is! TestExecutionValidator)) {
+      throw ArgumentError(
+        'The provided validators list must include an instance of '
+        'TestExecutionValidator.',
+      );
+    }
+  }
 
   final GeminiModel model;
   final String packagePath;
   final PromptGenerator promptGenerator;
+  final List<Validator> validators;
   final int maxRetries;
   final Duration initialBackoff;
 
@@ -65,7 +75,7 @@ class TestGenerator {
     TestFile testFile,
     PromptGenerator promptGenerator,
   ) async {
-    for (final check in defaultValidators) {
+    for (final check in validators) {
       final checkResult = await check.validate(testFile, promptGenerator);
       if (!checkResult.isPassed) {
         return checkResult;
@@ -156,7 +166,7 @@ class TestGenerator {
       testFile: testFile,
       status: status,
       tokens: tokens,
-      attempts: attempt,
+      attempts: max(1, attempt - 1),
     );
   }
 }
