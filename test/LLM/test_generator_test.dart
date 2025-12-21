@@ -373,4 +373,146 @@ void main() {
       verify(mockFormatValidator.validate(any, any)).called(1);
     });
   });
+
+  group('Test file existence', () {
+    test('File exists when test is created', () async {
+      when(
+        mockAnalysisValidator.validate(any, any),
+      ).thenAnswer((_) async => ValidationResult(isPassed: true));
+      when(
+        mockTestExecutionValidator.validate(any, any),
+      ).thenAnswer((_) async => ValidationResult(isPassed: true));
+      when(
+        mockFormatValidator.validate(any, any),
+      ).thenAnswer((_) async => ValidationResult(isPassed: true));
+
+      when(mockChat.sendMessage(any)).thenAnswer(
+        (_) async => ChatResponse(code: 'test code', needTesting: true),
+      );
+
+      final result = await generator.generate(
+        toBeTestedCode: '',
+        contextCode: '',
+        fileName: 'tmp_file.dart',
+      );
+
+      expect(result.status, equals(TestStatus.created));
+      expect(
+        File(
+          path.join(tmpDir, 'test', 'testgen', 'tmp_file.dart'),
+        ).existsSync(),
+        isTrue,
+      );
+    });
+
+    test('File does not exist when test generation failed', () async {
+      when(mockAnalysisValidator.validate(any, any)).thenAnswer(
+        (_) async => ValidationResult(
+          isPassed: false,
+          recoveryPrompt: 'Fix the analysis errors',
+        ),
+      );
+
+      when(mockChat.sendMessage(any)).thenAnswer(
+        (_) async => ChatResponse(code: 'test code', needTesting: true),
+      );
+
+      final result = await generator.generate(
+        toBeTestedCode: '',
+        contextCode: '',
+        fileName: 'tmp_file.dart',
+      );
+
+      expect(result.status, equals(TestStatus.failed));
+      expect(
+        File(
+          path.join(tmpDir, 'test', 'testgen', 'tmp_file.dart'),
+        ).existsSync(),
+        isFalse,
+      );
+    });
+
+    test('File does not exist when created and then skipped', () async {
+      final responses = [
+        ChatResponse(code: 'test code', needTesting: true),
+        ChatResponse(code: 'test code', needTesting: false),
+      ];
+      when(
+        mockChat.sendMessage(any),
+      ).thenAnswer((_) async => responses.removeAt(0));
+
+      when(mockAnalysisValidator.validate(any, any)).thenAnswer(
+        (_) async => ValidationResult(
+          isPassed: false,
+          recoveryPrompt: 'Fix the analysis errors',
+        ),
+      );
+
+      final result = await generator.generate(
+        toBeTestedCode: '',
+        contextCode: '',
+        fileName: 'tmp_file.dart',
+      );
+
+      expect(result.status, equals(TestStatus.skipped));
+      expect(result.attempts, equals(2));
+      expect(
+        File(
+          path.join(tmpDir, 'test', 'testgen', 'tmp_file.dart'),
+        ).existsSync(),
+        isFalse,
+      );
+    });
+
+    test(
+      'File does not exist when daily limit reached after being created',
+      () async {
+        final generatorWithShortBackoff = TestGenerator(
+          model: mockModel,
+          validators: [
+            mockAnalysisValidator,
+            mockTestExecutionValidator,
+            mockFormatValidator,
+          ],
+          packagePath: tmpDir,
+          initialBackoff: Duration(seconds: 128),
+        );
+
+        when(mockAnalysisValidator.validate(any, any)).thenAnswer(
+          (_) async => ValidationResult(
+            isPassed: false,
+            recoveryPrompt: 'Fix the analysis errors',
+          ),
+        );
+
+        final responses = [
+          ChatResponse(code: 'test code', needTesting: true),
+          Exception('rate limit exceeded'),
+        ];
+        when(mockChat.sendMessage(any)).thenAnswer((_) async {
+          final response = responses.removeAt(0);
+          if (response is Exception) {
+            throw response;
+          }
+          return response as ChatResponse;
+        });
+
+        expect(
+          () async => await generatorWithShortBackoff.generate(
+            toBeTestedCode: '',
+            contextCode: '',
+            fileName: 'tmp_file.dart',
+          ),
+          throwsA(isA<StateError>()),
+        );
+
+        expect(
+          File(
+            path.join(tmpDir, 'test', 'testgen', 'tmp_file.dart'),
+          ).existsSync(),
+          isFalse,
+        );
+      },
+    );
+  });
 }
