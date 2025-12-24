@@ -1,5 +1,6 @@
 import 'dart:io';
 
+import 'package:analyzer/dart/analysis/features.dart';
 import 'package:analyzer/dart/analysis/utilities.dart';
 import 'package:analyzer/diagnostic/diagnostic.dart';
 import 'package:path/path.dart' as path;
@@ -46,9 +47,19 @@ class TestFile {
     }
   }
 
+  /// Runs a lightweight syntax check on the generated test file.
+  ///
+  /// This method **only performs syntactic validation** by parsing the file
+  /// using the Dart analyzer parser. It does **not** perform semantic analysis.
+  ///
+  /// Its purpose is to quickly reject invalid Dart syntax before executing
+  /// `dart test`, which will catch semantic and runtime errors.
   Future<String?> runAnalyzer() async {
-    final content = await File(testFilePath).readAsString();
-    final result = parseString(content: content);
+    final result = parseFile(
+      path: testFilePath,
+      featureSet: FeatureSet.latestLanguageVersion(),
+      throwIfDiagnostics: false,
+    );
 
     final errors = result.errors
         .where((error) => error.severity == Severity.error)

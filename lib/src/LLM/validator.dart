@@ -3,7 +3,7 @@ import 'package:testgen/src/LLM/test_file.dart';
 
 /// List of standard validators that are run on generated test files.
 /// These validators must be passed before a test file is considered valid.
-final validators = List<Validator>.unmodifiable([
+final defaultValidators = List<Validator>.unmodifiable([
   AnalysisValidator(),
   TestExecutionValidator(),
   FormatValidator(),
@@ -32,7 +32,7 @@ abstract class Validator {
 }
 
 /// Validates that the generated test file has no Dart analysis errors.
-final class AnalysisValidator implements Validator {
+class AnalysisValidator implements Validator {
   @override
   Future<ValidationResult> validate(
     TestFile testFile,
@@ -50,7 +50,7 @@ final class AnalysisValidator implements Validator {
 }
 
 /// Validates that the generated tests executed successfully without failures.
-final class TestExecutionValidator implements Validator {
+class TestExecutionValidator implements Validator {
   @override
   Future<ValidationResult> validate(
     TestFile testFile,
@@ -68,7 +68,7 @@ final class TestExecutionValidator implements Validator {
 }
 
 /// Validates that the generated test file follows Dart formatting conventions.
-final class FormatValidator implements Validator {
+class FormatValidator implements Validator {
   @override
   Future<ValidationResult> validate(
     TestFile testFile,
