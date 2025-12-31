@@ -1,6 +1,8 @@
+import 'dart:io';
 import 'dart:math';
 
 import 'package:logging/logging.dart';
+import 'package:path/path.dart' as path;
 import 'package:testgen/src/LLM/model.dart';
 import 'package:testgen/src/LLM/prompt_generator.dart';
 import 'package:testgen/src/LLM/test_file.dart';
@@ -55,11 +57,22 @@ class TestGenerator {
     List<Validator>? validators,
     this.maxRetries = 5,
     this.initialBackoff = const Duration(seconds: 32),
+    this.verbose = false,
   }) : validators = validators ?? defaultValidators {
     if (this.validators.every((v) => v is! TestExecutionValidator)) {
       throw ArgumentError(
         'The provided validators list must include an instance of '
         'TestExecutionValidator.',
+      );
+    }
+
+    if (verbose) {
+      _logFileSink = File(
+        path.join(packagePath, 'testgen_prompts.log'),
+      ).openWrite(mode: FileMode.append);
+      _logger.info(
+        'Verbose logging enabled. LLM prompts will be logged to '
+        'testgen_prompts.log',
       );
     }
   }
@@ -71,6 +84,26 @@ class TestGenerator {
   final int maxRetries;
   final Duration initialBackoff;
   final _logger = Logger('TestGenerator');
+  final bool verbose;
+  IOSink? _logFileSink;
+
+  Future<void> dispose() async {
+    if (_logFileSink != null) {
+      await _logFileSink!.flush();
+      await _logFileSink!.close();
+    }
+  }
+
+  void _logPrompt(String prompt, String declarationName, int attemptNumber) {
+    _logFileSink!.writeln(
+      '--------------------- '
+      'Begin of Prompt ($declarationName - attempt $attemptNumber)'
+      ' ---------------------\n'
+      '$prompt\n'
+      '--------------------- End of Prompt ---------------------\n',
+    );
+    _logFileSink!.flush();
+  }
 
   Future<ValidationResult> _runValidators(
     TestFile testFile,
@@ -108,6 +141,9 @@ class TestGenerator {
       _logger.info(
         'Generating tests for $fileName (attempt $attempt of $maxRetries)',
       );
+      if (verbose) {
+        _logPrompt(prompt, fileName, attempt);
+      }
       try {
         final response = await chat.sendMessage(prompt);
 

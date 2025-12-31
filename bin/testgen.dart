@@ -79,6 +79,12 @@ ArgParser _createArgParser() => ArgParser()
     help:
         'Restrict test generation to only create tests that increase coverage.',
   )
+  ..addFlag(
+    'verbose',
+    abbr: 'v',
+    defaultsTo: false,
+    help: 'Enable verbose logging. Logs LLM prompts to a file.',
+  )
   ..addFlag('help', abbr: 'h', negatable: false, help: 'Show this help.');
 
 class Flags {
@@ -94,6 +100,7 @@ class Flags {
     required this.effectiveTestsOnly,
     required this.maxDepth,
     required this.maxAttempts,
+    required this.verbose,
   });
 
   final String package;
@@ -107,6 +114,7 @@ class Flags {
   final bool effectiveTestsOnly;
   final int maxDepth;
   final int maxAttempts;
+  final bool verbose;
 }
 
 Future<Flags> parseArgs(List<String> arguments) async {
@@ -196,6 +204,7 @@ ${parser.usage}
     effectiveTestsOnly: results['effective-tests-only'] as bool,
     maxDepth: int.parse(results['max-depth'] as String),
     maxAttempts: int.parse(results['max-attempts'] as String),
+    verbose: results['verbose'] as bool,
   );
 }
 
@@ -238,6 +247,7 @@ Future<void> main(List<String> arguments) async {
     model: model,
     packagePath: flags.package,
     maxRetries: flags.maxAttempts,
+    verbose: flags.verbose,
   );
 
   final process = await Process.run('dart', [
@@ -320,5 +330,6 @@ Future<void> main(List<String> arguments) async {
     }
   }
 
+  await testGenerator.dispose();
   exit(0);
 }
