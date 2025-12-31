@@ -2,6 +2,7 @@ import 'dart:collection';
 import 'dart:io';
 
 import 'package:args/args.dart';
+import 'package:logging/logging.dart';
 import 'package:path/path.dart' as path;
 import 'package:testgen/src/LLM/context_generator.dart';
 import 'package:testgen/src/LLM/model.dart';
@@ -10,6 +11,8 @@ import 'package:testgen/src/analyzer/declaration.dart';
 import 'package:testgen/src/analyzer/extractor.dart';
 import 'package:testgen/src/coverage/coverage_collection.dart';
 import 'package:testgen/src/coverage/util.dart';
+
+final _logger = Logger('testgen');
 
 ArgParser _createArgParser() => ArgParser()
   ..addOption(
@@ -197,6 +200,14 @@ ${parser.usage}
 }
 
 Future<void> main(List<String> arguments) async {
+  Logger.root.level = Level.INFO;
+  Logger.root.onRecord.listen((record) {
+    print(
+      '[${record.time}] [${record.loggerName}] [${record.level.name}] '
+      '${record.message}',
+    );
+  });
+
   final flags = await parseArgs(arguments);
   final coverage = await runTestsAndCollectCoverage(
     flags.package,
@@ -235,7 +246,7 @@ Future<void> main(List<String> arguments) async {
     'test',
   ], workingDirectory: flags.package);
   if (process.exitCode != 0) {
-    print('Failed to run dart pub add test');
+    _logger.shout('Failed to run dart pub add test');
     exit(1);
   }
 
@@ -248,12 +259,11 @@ Future<void> main(List<String> arguments) async {
     if (idx == -1) {
       break;
     }
-
-    final (declaration, lines) = untestedDeclarations[idx];
-    print(
-      '[testgen] Generating tests for ${declaration.name}, remaining: '
-      '${untestedDeclarations.length - skippedOrFailedDeclarations.length - 1}',
+    _logger.info(
+      'Remaining untested declarations: '
+      '${untestedDeclarations.length - skippedOrFailedDeclarations.length}',
     );
+    final (declaration, lines) = untestedDeclarations[idx];
 
     final toBeTestedCode = formatUntestedCode(declaration, lines);
     final contextMap = buildDependencyContext(
@@ -268,8 +278,6 @@ Future<void> main(List<String> arguments) async {
       fileName: '${declaration.name}_${declaration.id}_test.dart',
     );
 
-    print(result);
-
     bool isTestDeleted = result.status != TestStatus.created;
     if (flags.effectiveTestsOnly && result.status == TestStatus.created) {
       final isImproved = await validateTestCoverageImprovement(
@@ -283,8 +291,8 @@ Future<void> main(List<String> arguments) async {
       );
 
       if (!isImproved) {
-        print(
-          '[testgen] Generated tests for ${declaration.name} did not improve '
+        _logger.info(
+          'Generated tests for ${declaration.name} did not improve '
           'coverage. Discarding...\n',
         );
         await result.testFile.deleteTest();

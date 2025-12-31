@@ -2,11 +2,14 @@ import 'dart:async';
 import 'dart:io';
 
 import 'package:coverage/coverage.dart';
+import 'package:logging/logging.dart';
 import 'package:package_config/package_config.dart';
 import 'package:path/path.dart' as path;
 import 'package:stack_trace/stack_trace.dart';
 import 'package:testgen/src/analyzer/declaration.dart';
 import 'package:testgen/src/coverage/util.dart';
+
+final _logger = Logger('coverage');
 
 typedef CoverageData = List<(String, List<int>)>;
 
@@ -87,7 +90,7 @@ Future<Map<String, dynamic>> runTestsAndCollectCoverage(
   bool isInternalCall = false,
   required Set<String> scopeOutput,
 }) async {
-  print('[Coverage] Running tests and collecting coverage...');
+  _logger.info('Starting code coverage collection for package at $packageDir');
   if (!_isSignalsWatched) {
     _watchExitSignal(ProcessSignal.sighup);
     _watchExitSignal(ProcessSignal.sigint);
@@ -161,6 +164,7 @@ Future<Map<String, dynamic>> runTestsAndCollectCoverage(
 /// This ensures the coverage tool includes these files in its analysis,
 /// even if they are not directly referenced in tests.
 Future<void> _generateCoverageImportFile(String packagePath) async {
+  _logger.config('Preparing coverage import file for coverage collection');
   final importsFile = File(
     path.joinAll([packagePath, ...coverageImportFilePath]),
   );
@@ -195,6 +199,7 @@ Future<CoverageData> formatCoverage(
   Map<String, dynamic> coverageResults,
   String packageDir,
 ) async {
+  _logger.fine('Formatting raw coverage results into CoverageData structure');
   final List<Map<String, dynamic>> coverage = coverageResults['coverage'];
   final hitmaps = await HitMap.parseJson(coverage, packagePath: packageDir);
   return hitmaps.entries
@@ -223,6 +228,7 @@ Future<bool> validateTestCoverageImprovement({
   bool branchCoverage = false,
   bool functionCoverage = false,
 }) async {
+  _logger.info('Validating code coverage improvement for ${declaration.name}');
   final coverage = await runTestsAndCollectCoverage(
     packageDir,
     scopeOutput: scopeOutput,
@@ -243,14 +249,17 @@ Future<bool> validateTestCoverageImprovement({
       currentUncoveredLines++;
     }
   }
-  print(
-    '[Coverage] Validating coverage improvement for ${declaration.name}...',
-  );
-  print('[Coverage] Baseline uncovered lines: $baselineUncoveredLines');
-  print('[Coverage] Current uncovered lines: $currentUncoveredLines');
-  print(
-    '[Coverage] Coverage improved: ${currentUncoveredLines < baselineUncoveredLines}',
+
+  final coverageImproved = currentUncoveredLines < baselineUncoveredLines;
+  _logger.info(
+    coverageImproved
+        ? 'Code coverage has improved. '
+              'Uncovered lines decreased from $baselineUncoveredLines '
+              'to $currentUncoveredLines.'
+        : 'Code coverage has not improved. '
+              'Uncovered lines remain at $currentUncoveredLines '
+              '(baseline: $baselineUncoveredLines).',
   );
 
-  return currentUncoveredLines < baselineUncoveredLines;
+  return coverageImproved;
 }

@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'package:logging/logging.dart';
 import 'package:package_config/package_config.dart';
 import 'package:path/path.dart' as path;
 
@@ -7,6 +8,8 @@ import 'package:analyzer/dart/analysis/results.dart';
 import 'package:testgen/src/analyzer/declaration.dart';
 import 'package:testgen/src/analyzer/parser.dart';
 import 'package:testgen/src/coverage/coverage_collection.dart';
+
+final _logger = Logger('analyzer');
 
 /// Extracts [Declaration]s from the given [package].
 ///
@@ -21,7 +24,7 @@ Future<List<Declaration>> extractDeclarations(
   String package, {
   List<String> targetFiles = const [],
 }) async {
-  print('[Analyzer] Extracting declarations from $package');
+  _logger.info('Extracting source code declarations from $package');
   final collection = AnalysisContextCollection(includedPaths: [package]);
 
   final config = await findPackageConfig(Directory(package));
@@ -78,6 +81,7 @@ Future<List<Declaration>> extractDeclarations(
   final allDeclarations = visitedDeclarations.values.toList();
 
   if (targetFiles.isNotEmpty) {
+    _logger.info('Filtering declarations to only include target files');
     final targetSet = targetFiles
         .map((file) => config.toPackageUri(File(file).uri).toString())
         .toSet();
@@ -97,6 +101,7 @@ List<(Declaration, List<int>)> extractUntestedDeclarations(
   Map<String, List<Declaration>> declarations,
   CoverageData coverageResults,
 ) {
+  _logger.info('Extracting untested declarations based on coverage data');
   final untestedDeclarations = <(Declaration, List<int>)>[];
 
   for (final (filePath, uncoveredLines) in coverageResults) {

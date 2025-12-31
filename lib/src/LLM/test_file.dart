@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:analyzer/dart/analysis/features.dart';
 import 'package:analyzer/dart/analysis/utilities.dart';
 import 'package:analyzer/diagnostic/diagnostic.dart';
+import 'package:logging/logging.dart';
 import 'package:path/path.dart' as path;
 
 /// Manages the lifecycle of generated test files handling all operations
@@ -12,6 +13,7 @@ import 'package:path/path.dart' as path;
 /// The test files are created in the `test/testgen/` directory within the
 /// package path provided.
 class TestFile {
+  final _logger = Logger('TestFile');
   final String testFilePath;
   final String packagePath;
   int analyzerErrors = 0;
@@ -26,7 +28,7 @@ class TestFile {
       );
 
   Future<void> writeTest(String content) async {
-    print('[TestFile] Writing test file to $testFilePath');
+    _logger.info('Writing test file to $testFilePath');
     final testFile = File(testFilePath);
     final directory = testFile.parent;
     if (!await directory.exists()) {
@@ -40,7 +42,7 @@ class TestFile {
   }
 
   Future<void> deleteTest() async {
-    print('[TestFile] Deleting test file at $testFilePath');
+    _logger.info('Deleting test file at $testFilePath');
     final testFile = File(testFilePath);
     if (await testFile.exists()) {
       await testFile.delete();
@@ -55,6 +57,7 @@ class TestFile {
   /// Its purpose is to quickly reject invalid Dart syntax before executing
   /// `dart test`, which will catch semantic and runtime errors.
   Future<String?> runAnalyzer() async {
+    _logger.info('Running syntax check on $testFilePath');
     final result = parseFile(
       path: testFilePath,
       featureSet: FeatureSet.latestLanguageVersion(),
@@ -72,6 +75,7 @@ class TestFile {
   }
 
   Future<String?> runTest() async {
+    _logger.info('Running tests in $testFilePath');
     final result = await Process.run('dart', [
       'test',
       testFilePath,
@@ -83,6 +87,7 @@ class TestFile {
   }
 
   Future<String?> runFormat() async {
+    _logger.info('Formatting test file at $testFilePath');
     final result = await Process.run('dart', [
       'format',
       testFilePath,
