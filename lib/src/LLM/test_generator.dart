@@ -1,5 +1,8 @@
+import 'dart:io';
 import 'dart:math';
 
+import 'package:logging/logging.dart';
+import 'package:path/path.dart' as path;
 import 'package:testgen/src/LLM/model.dart';
 import 'package:testgen/src/LLM/prompt_generator.dart';
 import 'package:testgen/src/LLM/test_file.dart';
@@ -34,14 +37,13 @@ class GenerationResponse {
     const String green = '\x1b[32m';
     const String yellow = '\x1b[33m';
 
-    return '''[testgen] Test generation ended with ${switch (status) {
-      TestStatus.created => green,
-      TestStatus.skipped => yellow,
-      TestStatus.failed => red,
-    }}$status$reset and used $tokens tokens.
-      With $attempts attempt(s) including ${testFile.analyzerErrors} analyzer
-      errors and ${testFile.testErrors} test errors.
-      ''';
+    return 'Test generation ended with ${switch (status) {
+          TestStatus.created => green,
+          TestStatus.skipped => yellow,
+          TestStatus.failed => red,
+        }}$status$reset and used $tokens tokens. With $attempts attempt(s) '
+        'including ${testFile.analyzerErrors} analyzer errors and '
+        '${testFile.testErrors} test errors.';
   }
 }
 
@@ -55,11 +57,22 @@ class TestGenerator {
     List<Validator>? validators,
     this.maxRetries = 5,
     this.initialBackoff = const Duration(seconds: 32),
+    this.verbose = false,
   }) : validators = validators ?? defaultValidators {
     if (this.validators.every((v) => v is! TestExecutionValidator)) {
       throw ArgumentError(
         'The provided validators list must include an instance of '
         'TestExecutionValidator.',
+      );
+    }
+
+    if (verbose) {
+      _logFileSink = File(
+        path.join(packagePath, 'testgen_prompts.log'),
+      ).openWrite(mode: FileMode.append);
+      _logger.info(
+        'Verbose logging enabled. LLM prompts will be logged to '
+        'testgen_prompts.log',
       );
     }
   }
@@ -70,6 +83,27 @@ class TestGenerator {
   final List<Validator> validators;
   final int maxRetries;
   final Duration initialBackoff;
+  final _logger = Logger('TestGenerator');
+  final bool verbose;
+  IOSink? _logFileSink;
+
+  Future<void> dispose() async {
+    if (_logFileSink != null) {
+      await _logFileSink!.flush();
+      await _logFileSink!.close();
+    }
+  }
+
+  void _logPrompt(String prompt, String declarationName, int attemptNumber) {
+    _logFileSink!.writeln(
+      '--------------------- '
+      'Begin of Prompt ($declarationName - attempt $attemptNumber)'
+      ' ---------------------\n'
+      '$prompt\n'
+      '--------------------- End of Prompt ---------------------\n',
+    );
+    _logFileSink!.flush();
+  }
 
   Future<ValidationResult> _runValidators(
     TestFile testFile,
@@ -104,9 +138,12 @@ class TestGenerator {
 
     int attempt = 1;
     for (; attempt <= maxRetries && status == TestStatus.failed; attempt++) {
-      print(
-        '[LLM] Attempt $attempt / $maxRetries to generate test for $fileName',
+      _logger.info(
+        'Generating tests for $fileName (attempt $attempt of $maxRetries)',
       );
+      if (verbose) {
+        _logPrompt(prompt, fileName, attempt);
+      }
       try {
         final response = await chat.sendMessage(prompt);
 
@@ -124,7 +161,6 @@ class TestGenerator {
             prompt = validation.recoveryPrompt!;
           }
         } else {
-          print('[LLM] No significant logic to test in $fileName. Skipping.');
           status = TestStatus.skipped;
         }
       } catch (e) {
@@ -145,13 +181,16 @@ class TestGenerator {
         }
 
         if (isRateLimitError) {
-          print('[LLM] Rate limit exceeded, retrying in $backoff...');
+          _logger.warning(
+            'Rate limit error encountered, retrying after '
+            '${backoff.inSeconds} seconds...',
+          );
           await Future.delayed(backoff);
           backoff *= 2;
           continue;
         }
 
-        print('[LLM] Error encountered');
+        _logger.warning('Error encountered: $errorMessage');
         prompt = promptGenerator.fixError(errorMessage);
       }
     }
@@ -162,11 +201,14 @@ class TestGenerator {
 
     final tokens = await model.countTokens(chat);
 
-    return GenerationResponse(
+    final generationResponse = GenerationResponse(
       testFile: testFile,
       status: status,
       tokens: tokens,
       attempts: max(1, attempt - 1),
     );
+    _logger.info(generationResponse);
+
+    return generationResponse;
   }
 }

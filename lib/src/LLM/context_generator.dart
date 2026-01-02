@@ -1,12 +1,14 @@
 import 'dart:collection';
 
 import 'package:collection/collection.dart';
+import 'package:logging/logging.dart';
 import 'package:testgen/src/analyzer/declaration.dart';
 
 const indent = '  ';
 const newLine = '\n';
 const rest = '// rest of the code...';
 const packagePathPrefix = '// Code Snippet package path: ';
+final _logger = Logger('ContextGenerator');
 
 /// Builds a context map for a given [declaration], by traversing its
 /// dependencies up to [maxDepth] levels deep.
@@ -17,6 +19,10 @@ Map<Declaration?, List<Declaration>> buildDependencyContext(
   Declaration declaration, {
   int maxDepth = 1,
 }) {
+  _logger.info(
+    'Building dependency context for '
+    'declaration: ${declaration.name}, maxDepth: $maxDepth',
+  );
   final parentMap = <Declaration?, Set<Declaration>>{};
 
   for (final dependency in declaration.dependsOn) {
@@ -35,6 +41,7 @@ Map<Declaration?, List<Declaration>> buildDependencyContext(
 /// Formats the context map produced by [buildDependencyContext] into a
 /// human-readable string, including code snippets and their file paths.
 String formatContext(Map<Declaration?, List<Declaration>> parentMap) {
+  _logger.fine('Formatting context map');
   final buffer = StringBuffer();
 
   for (final MapEntry(key: parent, value: children) in parentMap.entries) {
@@ -77,6 +84,7 @@ ${child.toCode()}$closing
 /// Returns the code for [declaration] after marking the specified [lines]
 /// as untested, and wrapping it in the parent declaration's context if exists.
 String formatUntestedCode(Declaration declaration, List<int> lines) {
+  _logger.fine('Formatting untested code for declaration: ${declaration.name}');
   final markedCode = List<String>.from(declaration.sourceCode);
   for (final line in lines) {
     markedCode[line] += '$indent// UNTESTED';

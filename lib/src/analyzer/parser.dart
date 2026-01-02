@@ -1,7 +1,10 @@
 import 'package:analyzer/dart/ast/ast.dart' as ast;
 import 'package:analyzer/source/line_info.dart';
+import 'package:logging/logging.dart';
 import 'package:testgen/src/analyzer/declaration.dart';
 import 'package:testgen/src/analyzer/visitor.dart';
+
+final _logger = Logger('parser');
 
 void parseCompilationUnit(
   ast.CompilationUnit unit,
@@ -107,6 +110,9 @@ void _parseTopLevelVariableDeclaration(
   // except for the id field which is unique for each variable.
 
   for (final variable in declaration.variables.variables) {
+    _logger.fine(
+      'Parsing top-level variable declaration: ${variable.name.lexeme}',
+    );
     final parsedDeclaration = _parseDeclaration(
       variable,
       lineInfo,
@@ -157,6 +163,7 @@ void _parseCompoundDeclaration(
   final compoundOffset = declaration.firstTokenAfterCommentAndMetadata.offset;
   final signatureEnd = content.indexOf(RegExp(r'[{;]'), compoundOffset) + 1;
 
+  _logger.fine('Parsing compound declaration: $name');
   final parent = _parseDeclaration(
     declaration,
     lineInfo,
@@ -206,6 +213,7 @@ void _parseClassMembers(
     late Declaration parsedDecalaration;
     switch (member) {
       case ast.MethodDeclaration():
+        _logger.fine('Parsing method declaration: ${member.name.lexeme}');
         parsedDecalaration = _parseDeclaration(
           member,
           lineInfo,
@@ -217,6 +225,7 @@ void _parseClassMembers(
         break;
       case ast.FieldDeclaration():
         for (final variable in member.fields.variables) {
+          _logger.fine('Parsing field declaration: ${variable.name.lexeme}');
           parsedDecalaration = _parseDeclaration(
             variable,
             lineInfo,
@@ -230,14 +239,16 @@ void _parseClassMembers(
         }
         break;
       case ast.ConstructorDeclaration():
+        final constructorName = member.name?.lexeme != null
+            ? '${parent.name}.${member.name!.lexeme}'
+            : parent.name;
+        _logger.fine('Parsing constructor declaration: $constructorName');
         parsedDecalaration = _parseDeclaration(
           member,
           lineInfo,
           path,
           content,
-          name: member.name?.lexeme != null
-              ? '${parent.name}.${member.name!.lexeme}'
-              : parent.name,
+          name: constructorName,
           parent: parent,
         );
         break;
@@ -257,6 +268,7 @@ void _parseEnumConstants(
   Declaration parent,
 ) {
   for (final constant in declaration.constants) {
+    _logger.fine('Parsing enum constant declaration: ${constant.name.lexeme}');
     final parsedDeclaration = _parseDeclaration(
       constant,
       lineInfo,
@@ -281,7 +293,7 @@ void _parseNamedCompilationUnitMember(
   String content,
 ) {
   // NamedCompilationUnitMember includes top-level functions and type aliases
-
+  _logger.fine('Parsing named compilation unit member: ${member.name.lexeme}');
   final parsedDeclaration = _parseDeclaration(
     member,
     lineInfo,

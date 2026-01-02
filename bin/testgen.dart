@@ -2,6 +2,7 @@ import 'dart:collection';
 import 'dart:io';
 
 import 'package:args/args.dart';
+import 'package:logging/logging.dart';
 import 'package:path/path.dart' as path;
 import 'package:testgen/src/LLM/context_generator.dart';
 import 'package:testgen/src/LLM/model.dart';
@@ -10,6 +11,8 @@ import 'package:testgen/src/analyzer/declaration.dart';
 import 'package:testgen/src/analyzer/extractor.dart';
 import 'package:testgen/src/coverage/coverage_collection.dart';
 import 'package:testgen/src/coverage/util.dart';
+
+final _logger = Logger('testgen');
 
 ArgParser _createArgParser() => ArgParser()
   ..addOption(
@@ -76,6 +79,12 @@ ArgParser _createArgParser() => ArgParser()
     help:
         'Restrict test generation to only create tests that increase coverage.',
   )
+  ..addFlag(
+    'verbose',
+    abbr: 'v',
+    defaultsTo: false,
+    help: 'Enable verbose logging. Logs LLM prompts to a file.',
+  )
   ..addFlag('help', abbr: 'h', negatable: false, help: 'Show this help.');
 
 class Flags {
@@ -91,6 +100,7 @@ class Flags {
     required this.effectiveTestsOnly,
     required this.maxDepth,
     required this.maxAttempts,
+    required this.verbose,
   });
 
   final String package;
@@ -104,6 +114,7 @@ class Flags {
   final bool effectiveTestsOnly;
   final int maxDepth;
   final int maxAttempts;
+  final bool verbose;
 }
 
 Future<Flags> parseArgs(List<String> arguments) async {
@@ -193,10 +204,19 @@ ${parser.usage}
     effectiveTestsOnly: results['effective-tests-only'] as bool,
     maxDepth: int.parse(results['max-depth'] as String),
     maxAttempts: int.parse(results['max-attempts'] as String),
+    verbose: results['verbose'] as bool,
   );
 }
 
 Future<void> main(List<String> arguments) async {
+  Logger.root.level = Level.INFO;
+  Logger.root.onRecord.listen((record) {
+    print(
+      '[${record.time}] [${record.loggerName}] [${record.level.name}] '
+      '${record.message}',
+    );
+  });
+
   final flags = await parseArgs(arguments);
   final coverage = await runTestsAndCollectCoverage(
     flags.package,
@@ -227,6 +247,7 @@ Future<void> main(List<String> arguments) async {
     model: model,
     packagePath: flags.package,
     maxRetries: flags.maxAttempts,
+    verbose: flags.verbose,
   );
 
   final process = await Process.run('dart', [
@@ -235,7 +256,7 @@ Future<void> main(List<String> arguments) async {
     'test',
   ], workingDirectory: flags.package);
   if (process.exitCode != 0) {
-    print('Failed to run dart pub add test');
+    _logger.shout('Failed to run dart pub add test');
     exit(1);
   }
 
@@ -248,12 +269,11 @@ Future<void> main(List<String> arguments) async {
     if (idx == -1) {
       break;
     }
-
-    final (declaration, lines) = untestedDeclarations[idx];
-    print(
-      '[testgen] Generating tests for ${declaration.name}, remaining: '
-      '${untestedDeclarations.length - skippedOrFailedDeclarations.length - 1}',
+    _logger.info(
+      'Remaining untested declarations: '
+      '${untestedDeclarations.length - skippedOrFailedDeclarations.length}',
     );
+    final (declaration, lines) = untestedDeclarations[idx];
 
     final toBeTestedCode = formatUntestedCode(declaration, lines);
     final contextMap = buildDependencyContext(
@@ -268,8 +288,6 @@ Future<void> main(List<String> arguments) async {
       fileName: '${declaration.name}_${declaration.id}_test.dart',
     );
 
-    print(result);
-
     bool isTestDeleted = result.status != TestStatus.created;
     if (flags.effectiveTestsOnly && result.status == TestStatus.created) {
       final isImproved = await validateTestCoverageImprovement(
@@ -283,8 +301,8 @@ Future<void> main(List<String> arguments) async {
       );
 
       if (!isImproved) {
-        print(
-          '[testgen] Generated tests for ${declaration.name} did not improve '
+        _logger.info(
+          'Generated tests for ${declaration.name} did not improve '
           'coverage. Discarding...\n',
         );
         await result.testFile.deleteTest();
@@ -312,5 +330,6 @@ Future<void> main(List<String> arguments) async {
     }
   }
 
+  await testGenerator.dispose();
   exit(0);
 }
