@@ -218,6 +218,17 @@ Future<void> main(List<String> arguments) async {
   });
 
   final flags = await parseArgs(arguments);
+  final process = await Process.run('dart', [
+    'pub',
+    'add',
+    'test',
+    '--dev',
+  ], workingDirectory: flags.package);
+  if (process.exitCode != 0) {
+    _logger.shout('Failed to run dart pub add test --dev');
+    exit(1);
+  }
+
   final coverage = await runTestsAndCollectCoverage(
     flags.package,
     vmServicePort: flags.vmServicePort,
@@ -250,17 +261,8 @@ Future<void> main(List<String> arguments) async {
     verbose: flags.verbose,
   );
 
-  final process = await Process.run('dart', [
-    'pub',
-    'add',
-    'test',
-  ], workingDirectory: flags.package);
-  if (process.exitCode != 0) {
-    _logger.shout('Failed to run dart pub add test');
-    exit(1);
-  }
-
   final skippedOrFailedDeclarations = HashSet<int>();
+  untestedDeclarations.shuffle();
 
   while (untestedDeclarations.isNotEmpty) {
     final idx = untestedDeclarations.indexWhere(
