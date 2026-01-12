@@ -2,68 +2,30 @@
 
 import 'dart:io';
 import 'package:test/test.dart';
-import 'package:mockito/mockito.dart';
 import 'package:testgen/src/coverage/coverage_collection.dart';
 import 'package:testgen/src/analyzer/declaration.dart';
-import 'package:path/path.dart' as p;
-
-class MockDeclaration extends Mock implements Declaration {
-  MockDeclaration(this.filePath);
-
-  final String filePath;
-  
-  @override
-  String get name => 'testFunction';
-  @override
-  String get path => filePath;
-  @override
-  int get startLine => 1;
-  @override
-  int get endLine => 3;
-}
+import 'package:path/path.dart' as path;
 
 void main() {
   group('validateTestCoverageImprovement Integration', () {
     late Directory tempDir;
     late String packageDir;
-    late MockDeclaration declaration;
-    late String name;
+    final sourceCode = ['int add(int x, int y) {', '  return x + y;', '}'];
+    final packageName = 'testing_package';
+    final declaration = Declaration(
+      1,
+      name: 'add',
+      sourceCode: sourceCode,
+      startLine: 1,
+      endLine: 3,
+      path: 'package:$packageName/src/file.dart',
+    );
 
     setUp(() async {
-      tempDir = await Directory.systemTemp.createTemp('testgen_coverage_test');
+      tempDir = await Directory.systemTemp.createTemp('testgen_coverage_test_');
       packageDir = tempDir.path;
-      name = tempDir.path.split(p.separator).last;
-      declaration = MockDeclaration('package:$name/src/file.dart');
 
-      // Create a minimal project structure to avoid failures in runTestsAndCollectCoverage
-      await File(p.join(packageDir, 'pubspec.yaml')).writeAsString('''
-name: $name
-environment:
-  sdk: '>=3.0.0 <4.0.0'
-dev_dependencies:
-  test: ^1.29.0
-''');
-      await Directory(p.join(packageDir, 'lib', 'src')).create(recursive: true);
-      await File(p.join(packageDir, 'lib', 'src', 'file.dart')).writeAsString(
-        '''
-int add(int x, int y) {
-  return x + y;
-}
-''',
-      );
-      await Directory(p.join(packageDir, 'test')).create();
-      await File(p.join(packageDir, 'test', 'dummy_test.dart')).writeAsString(
-        '''
-import "package:test/test.dart";
-import "package:$name/src/file.dart";
-
-void main() {
-  test("dummy", () {});
-}
-''',
-      );
-
-      await Process.run('dart', ['pub', 'get'], workingDirectory: packageDir);
+      await _createMinimalPackage(packageDir, packageName, sourceCode);
     });
 
     tearDown(() async {
@@ -72,42 +34,80 @@ void main() {
       }
     });
 
-    test('write a test that improves the coverage', () async {
+    test('returns true only when test execution improves coverage', () async {
       try {
-        var result = await validateTestCoverageImprovement(
+        final initialResult = await validateTestCoverageImprovement(
           declaration: declaration,
           baselineUncoveredLines: 2,
           packageDir: packageDir,
-          scopeOutput: {name},
+          scopeOutput: {packageName},
         );
 
-        expect(result, isFalse);
+        expect(initialResult, isFalse);
 
-        await File(p.join(packageDir, 'test', 'dummy_test.dart')).writeAsString(
-          '''
-import "package:test/test.dart";
-import "package:$name/src/file.dart";
+        await _overwriteTestWithCoveredVersion(packageDir, packageName);
 
-void main() {
-  test("dummy", () {
-    final result = add(2, 3);
-    expect(result, 5);
-  });
-}
-''',
-        );
-
-        result = await validateTestCoverageImprovement(
+        final improvedResult = await validateTestCoverageImprovement(
           declaration: declaration,
           baselineUncoveredLines: 2,
           packageDir: packageDir,
-          scopeOutput: {name},
+          scopeOutput: {packageName},
         );
 
-        expect(result, isTrue);
+        expect(improvedResult, isTrue);
       } on ProcessException catch (_) {
         // Expected in restricted environments
       }
     });
   });
+}
+
+Future<void> _createMinimalPackage(
+  String packageDir,
+  String packageName,
+  List<String> sourceCode,
+) async {
+  await File(path.join(packageDir, 'pubspec.yaml')).writeAsString('''
+name: $packageName
+environment:
+  sdk: '>=3.0.0 <4.0.0'
+dev_dependencies:
+  test: ^1.29.0
+''');
+
+  await Directory(path.join(packageDir, 'lib', 'src')).create(recursive: true);
+
+  await File(
+    path.join(packageDir, 'lib', 'src', 'file.dart'),
+  ).writeAsString(sourceCode.join('\n'));
+
+  await Directory(path.join(packageDir, 'test')).create();
+
+  await File(path.join(packageDir, 'test', 'dummy_test.dart')).writeAsString('''
+import 'package:test/test.dart';
+import 'package:$packageName/src/file.dart';
+
+void main() {
+  test('dummy', () {});
+}
+''');
+
+  await Process.run('dart', ['pub', 'get'], workingDirectory: packageDir);
+}
+
+Future<void> _overwriteTestWithCoveredVersion(
+  String packageDir,
+  String packageName,
+) async {
+  await File(path.join(packageDir, 'test', 'dummy_test.dart')).writeAsString('''
+import 'package:test/test.dart';
+import 'package:$packageName/src/file.dart';
+
+void main() {
+  test('covers add()', () {
+    final result = add(2, 3);
+    expect(result, 5);
+  });
+}
+''');
 }
