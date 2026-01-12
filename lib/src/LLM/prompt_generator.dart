@@ -14,7 +14,7 @@ class PromptGenerator {
     final buffer = StringBuffer();
 
     buffer.writeln('''
-Generate a Dart unit test for the following code:
+Generate a Dart test cases for the following code:
 
 ```dart
 $toBeTestedCode
@@ -31,20 +31,39 @@ $contextCode
     }
 
     buffer.writeln('''
-Requirements:
-- Test ONLY the lines marked with `// UNTESTED` - ignore already tested code.
-- The provided code is partial, showing only relevant members.
-- Use appropriate mocking for external dependencies (use dart:mockito package).
-- If the code is trivial or untestable, set "needTesting": false and leave "code" empty (don't generate any code).
-- Skip generating tests for private members (those starting with `_`).
-- Primarily use the `dart:test` package for writing tests, avoiding using `dart:mockito` package only it's needed.
-- For mocking, use the 'dart:mockito' package and try to extend mock classes from `Mock` class provided by the package, don't rely on build-run code generation.
-- Use the actual classes and methods from the codebase - import the necessary packages instead of creating mock or temporary classes.
-- Ignore any logs or print statements in the code and prevent asserting on them in tests.
-- Import any other required Dart packages (e.g., `async`, `test`, etc.) as needed.
-- Follow Dart testing best practices with descriptive test names.
+You must first decide the most appropriate test type for the code:
+- "unit": when the logic can be tested in isolation using mocks.
+- "integration": when the logic orchestrates multiple components, interacts with the filesystem, runs processes, or is not suitable for unit testing.
+- "none": when the code is trivial or not meaningfully testable.
 
-Return the complete test file with proper imports and test structure.
+Integration tests MUST:
+- Be deterministic and runnable in CI.
+- NOT call any external APIs.
+- NOT require API keys or environment variables.
+- Avoid network access.
+- Prefer real implementations over mocks.
+
+Unit tests SHOULD:
+- Test behavior in isolation.
+- Use mocks only when necessary.
+
+Requirements:
+- Test ONLY the lines marked with `// UNTESTED`; ignore already tested code.
+- The provided code is partial and shows only relevant members.
+- Skip generating tests for private members (those starting with `_`).
+- If the code is trivial or untestable, set "needTesting": false and leave "code" empty.
+- For unit tests:
+  - Primarily use the `dart:test` package.
+  - Use mocking only if required using `dart:mockito` package.
+  - Extend mock classes from `Mock` directly; do NOT rely on code generation or build_runner.
+- For integration tests:
+  - Avoid mocking unless strictly unavoidable.
+  - Exercise real code paths where possible.
+  - Use temp directories or in-memory filesystems for file operations.
+- Use actual classes and methods from the codebase.
+- Import required packages instead of creating fake or temporary classes.
+- Ignore logs or print statements and do not assert on them.
+- Follow Dart testing best practices with clear, descriptive test names.
 ''');
 
     return buffer.toString();

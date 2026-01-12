@@ -19,7 +19,7 @@ void main() {
 
         expect(
           result,
-          contains('Generate a Dart unit test for the following code:'),
+          contains('Generate a Dart test cases for the following code:'),
         );
         expect(result, contains('```dart\n$toBeTestedCode\n```'));
         expect(result, isNot(contains('With the following context:')));
@@ -40,7 +40,7 @@ void main() {
 
         expect(
           result,
-          contains('Generate a Dart unit test for the following code:'),
+          contains('Generate a Dart test cases for the following code:'),
         );
         expect(result, contains('```dart\n$toBeTestedCode\n```'));
         expect(result, contains('With the following context:'));
