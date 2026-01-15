@@ -1,4 +1,4 @@
-name: testgen 
+name: testgen CI
 
 on:
   push:

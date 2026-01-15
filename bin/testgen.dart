@@ -11,6 +11,7 @@ import 'package:testgen/src/analyzer/declaration.dart';
 import 'package:testgen/src/analyzer/extractor.dart';
 import 'package:testgen/src/coverage/coverage_collection.dart';
 import 'package:testgen/src/coverage/util.dart';
+import 'package:yaml/yaml.dart';
 
 final _logger = Logger('testgen');
 
@@ -54,7 +55,7 @@ ArgParser _createArgParser() => ArgParser()
   )
   ..addOption(
     'model',
-    defaultsTo: 'gemini-2.5-pro',
+    defaultsTo: 'gemini-3-flash-preview',
     help: 'Gemini model to use for generating tests.',
   )
   ..addOption(
@@ -64,7 +65,7 @@ ArgParser _createArgParser() => ArgParser()
   )
   ..addOption(
     'max-depth',
-    defaultsTo: '2',
+    defaultsTo: '10',
     help: 'Maximum dependency depth for context generation.',
   )
   ..addOption(
@@ -75,6 +76,7 @@ ArgParser _createArgParser() => ArgParser()
   )
   ..addFlag(
     'effective-tests-only',
+    abbr: 'e',
     defaultsTo: false,
     help:
         'Restrict test generation to only create tests that increase coverage.',
@@ -123,9 +125,9 @@ Future<Flags> parseArgs(List<String> arguments) async {
 
   void printUsage() {
     print('''
-TestGen - LLM-based test generation tool
+testgen - LLM-based test generation tool
 
-Generates comprehensive Dart unit tests using LLM (Gemini) for uncovered code.
+Generates Dart test cases using Google Gemini to improve code coverage.
 
 Analyzes code coverage, identifies untested declarations, and creates targeted
 tests to improve coverage metrics through an iterative validation process.
@@ -208,6 +210,19 @@ ${parser.usage}
   );
 }
 
+List<String> getPackageDependencies(String package) {
+  final pubspecFile = File('$package/pubspec.yaml');
+
+  final yamlContent = loadYaml(pubspecFile.readAsStringSync());
+
+  final dependencies = yamlContent['dependencies'];
+  if (dependencies is YamlMap) {
+    return dependencies.keys.cast<String>().toList();
+  }
+
+  return [];
+}
+
 Future<void> main(List<String> arguments) async {
   Logger.root.level = Level.INFO;
   Logger.root.onRecord.listen((record) {
@@ -218,15 +233,19 @@ Future<void> main(List<String> arguments) async {
   });
 
   final flags = await parseArgs(arguments);
-  final process = await Process.run('dart', [
-    'pub',
-    'add',
-    'test',
-    '--dev',
-  ], workingDirectory: flags.package);
-  if (process.exitCode != 0) {
-    _logger.shout('Failed to run dart pub add test --dev');
-    exit(1);
+  final deps = getPackageDependencies(flags.package);
+
+  if (!deps.contains('test')) {
+    final process = await Process.run('dart', [
+      'pub',
+      'add',
+      'test',
+      '--dev',
+    ], workingDirectory: flags.package);
+    if (process.exitCode != 0) {
+      _logger.shout('Failed to run dart pub add test --dev');
+      exit(1);
+    }
   }
 
   final coverage = await runTestsAndCollectCoverage(
@@ -287,7 +306,8 @@ Future<void> main(List<String> arguments) async {
     final result = await testGenerator.generate(
       toBeTestedCode: toBeTestedCode,
       contextCode: contextCode,
-      fileName: '${declaration.name}_${declaration.id}_test.dart',
+      fileName:
+          '${declaration.name}_${declaration.id}_${lines.length}_test.dart',
     );
 
     bool isTestDeleted = result.status != TestStatus.created;

@@ -39,8 +39,11 @@ class Declaration {
   /// Source lines of this declaration, including any comments and annotations.
   final List<String> sourceCode;
 
+  /// Line number where this declaration starts in the source file,
+  /// including preceding comments or annotations.
   final int startLine;
 
+  /// Line number where this declaration ends in the source file.
   final int endLine;
 
   /// File path represented in Dart package URI format
@@ -50,6 +53,7 @@ class Declaration {
   /// Parent declaration for nested elements (e.g., method inside a class).
   final Declaration? parent;
 
+  /// Declarations that this declaration depends on.
   final Set<Declaration> dependsOn = {};
 
   void addDependency(Declaration declaration) {

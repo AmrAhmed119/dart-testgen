@@ -24,7 +24,10 @@ void main() {
 
   group('Test Context for ExtensionType', () {
     test('Test Context of ExtensionType at depth 1', () {
-      final context = buildDependencyContext(decls['ExtensionType']!);
+      final context = buildDependencyContext(
+        decls['ExtensionType']!,
+        maxDepth: 1,
+      );
       final formattedContext = formatContext(context);
       expect(
         formattedContext,

@@ -1,11 +1,20 @@
 name: testgen
-description: LLM-based test generation tool that creates comprehensive Dart unit tests for uncovered code using Google's Gemini AI models.
+description: >
+  An LLM-based test generation tool that generates Dart test cases for uncovered code
+  using Google Gemini to improve code coverage.
 version: 0.1.0
 repository: https://github.com/AmrAhmed119/dart-testgen
 issue_tracker: https://github.com/AmrAhmed119/dart-testgen/issues
 
 environment:
   sdk: '>=3.9.0 <4.0.0'
+
+topics:
+  - testing
+  - code-coverage
+  - gemini
+  - llm
+  - automation
 
 dependencies:
   analyzer: ^9.0.0
@@ -21,10 +30,10 @@ dependencies:
 
 dev_dependencies:
   benchmark_harness: ^2.4.0
-  build_runner: ^2.10.4
+  build_runner: ^2.10.5
   http: ^1.6.0
   lints: ^6.0.0
-  mockito: ^5.6.1
+  mockito: ^5.6.3
   test: ^1.29.0
 
 executables:

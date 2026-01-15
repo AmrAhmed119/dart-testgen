@@ -39,7 +39,7 @@ environment:
 ''');
     });
 
-    tearDown(() async {
+    tearDownAll(() async {
       if (tempDir.existsSync()) {
         await tempDir.delete(recursive: true);
       }
@@ -53,7 +53,7 @@ environment:
           unawaited(
             runTestsAndCollectCoverage(
               tempDir.path,
-              scopeOutput: {'lib/'},
+              scopeOutput: {'test_pkg'},
               isInternalCall: false,
             ),
           );
@@ -95,7 +95,7 @@ environment:
           unawaited(
             runTestsAndCollectCoverage(
               tempDir.path,
-              scopeOutput: {'lib/'},
+              scopeOutput: {'test_pkg'},
               isInternalCall: true,
             ),
           );
@@ -127,7 +127,7 @@ environment:
         unawaited(
           runTestsAndCollectCoverage(
             tempDir.path,
-            scopeOutput: {'lib/'},
+            scopeOutput: {'test_pkg'},
             branchCoverage: true,
             functionCoverage: true,
             isInternalCall: true,

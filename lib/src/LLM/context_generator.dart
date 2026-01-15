@@ -17,7 +17,7 @@ final _logger = Logger('ContextGenerator');
 /// for top-level declarations.
 Map<Declaration?, List<Declaration>> buildDependencyContext(
   Declaration declaration, {
-  int maxDepth = 1,
+  int maxDepth = 10,
 }) {
   _logger.info(
     'Building dependency context for '

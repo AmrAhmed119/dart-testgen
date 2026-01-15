@@ -24,7 +24,7 @@ void main() {
 
   group('Test Context for method4', () {
     test('Test context of method4 at depth 1', () {
-      final context = buildDependencyContext(decls['method4']!);
+      final context = buildDependencyContext(decls['method4']!, maxDepth: 1);
       final formattedContext = formatContext(context);
       expect(
         formattedContext,
