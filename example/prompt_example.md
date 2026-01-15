@@ -1,36 +1,60 @@
-/// A utility for generating different LLM prompt templates for code
-/// generation and analysis.
-///
-/// Provides methods to create prompts for test case generation, Dart
-/// error analysis, and test execution issues.
-///
-/// Returns formatted strings for LLM use.
-///
-/// Extend this class to override default prompts as needed for your workflow.
-class PromptGenerator {
-  const PromptGenerator();
-
-  String testCode(String toBeTestedCode, String contextCode) {
-    final buffer = StringBuffer();
-
-    buffer.writeln('''
 Generate a Dart test cases for the following code:
 
 ```dart
-$toBeTestedCode
-```
-''');
+// Code Snippet package path: package:testing/src/globals.dart
+void function(int x) {  // UNTESTED
+  if (x == 1) {  // UNTESTED
+    Person person = Person();  // UNTESTED
+    person.greet();  // UNTESTED
+  } else {
+    globalFunction(globalVar);  // UNTESTED
+    Animal animal = Animal('Dog', 4);  // UNTESTED
+    animal.makeSound();  // UNTESTED
+    animal.walk();  // UNTESTED
+  }
+}
 
-    if (contextCode.trim().isNotEmpty) {
-      buffer.writeln('''
+```
+
 With the following context:
 ```dart
-$contextCode
-```
-''');
-    }
+// Code Snippet package path: package:testing/src/globals.dart
+int globalFunction(int x) {
+  return add(x, x);
+}
 
-    buffer.writeln('''
+// Code Snippet package path: package:testing/src/globals.dart
+int globalVar = 42;
+
+// Code Snippet package path: package:testing/src/person.dart
+class Person {
+  // rest of the code...
+
+void greet() {
+    print('Hello, my name is $name and I am $age years old.');
+  }
+
+  // rest of the code...
+}
+
+// Code Snippet package path: package:testing/src/animal.dart
+class Animal extends ParentClass {
+  // rest of the code...
+
+void makeSound() {
+    log.info("makeSound is called");
+    parentMethod();
+  }
+
+void walk() {
+    log.info("walk is called");
+  }
+
+  // rest of the code...
+}
+
+```
+
 You must first decide the most appropriate test type for the code:
 - "unit": when the logic can be tested in isolation using mocks.
 - "integration": when the logic orchestrates multiple components, interacts with the filesystem, runs processes, or is not suitable for unit testing.
@@ -64,48 +88,3 @@ Requirements:
 - Import required packages instead of creating fake or temporary classes.
 - Ignore logs or print statements and do not assert on them.
 - Follow Dart testing best practices with clear, descriptive test names.
-''');
-
-    return buffer.toString();
-  }
-
-  String analysisError(String error) {
-    return '''
-The generated Dart code contains the following analyzer error(s):
-
-$error
-
-Fix these issues and return only the corrected, complete test code that will pass dart analyze.
-''';
-  }
-
-  String testFailError(String error) {
-    return '''
-The generated test failed with the following error(s):
-
-$error
-
-Fix the test code and return only the corrected, complete test code that will pass all tests.
-''';
-  }
-
-  String formatError(String error) {
-    return '''
-The generated Dart code has formatting issues:
-
-$error
-
-Fix these issues and return only the correctly formatted, complete test code.
-''';
-  }
-
-  String fixError(String error) {
-    return '''
-An error occurred during test generation:
-
-$error
-
-Fix these issues and return only the corrected, complete test code.
-''';
-  }
-}

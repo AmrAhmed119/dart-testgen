@@ -8,7 +8,7 @@ import 'package:logging/logging.dart';
 /// and interacting with Gemini model.
 class GeminiModel {
   GeminiModel({
-    String modelName = 'gemini-2.5-pro',
+    String modelName = 'gemini-3-flash-preview',
     String? apiKey,
     String systemInstruction =
         'You are a code assistant that generates Dart test '
