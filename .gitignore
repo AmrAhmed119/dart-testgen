@@ -3,4 +3,4 @@ pubspec.lock
 
 # generated files
 **/*.mocks.dart
-coverage/
+/coverage/
