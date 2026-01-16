@@ -5,7 +5,7 @@ import 'dart:io';
 import 'package:test/test.dart';
 import 'package:mockito/mockito.dart';
 import 'package:path/path.dart' as path;
-import 'package:testgen/src/coverage/util.dart';
+import 'package:test_gen_ai/src/coverage/util.dart';
 
 class MockFile extends Mock implements File {
   @override

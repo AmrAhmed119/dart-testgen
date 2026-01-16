@@ -4,13 +4,13 @@ import 'dart:io';
 import 'package:args/args.dart';
 import 'package:logging/logging.dart';
 import 'package:path/path.dart' as path;
-import 'package:testgen/src/LLM/context_generator.dart';
-import 'package:testgen/src/LLM/model.dart';
-import 'package:testgen/src/LLM/test_generator.dart';
-import 'package:testgen/src/analyzer/declaration.dart';
-import 'package:testgen/src/analyzer/extractor.dart';
-import 'package:testgen/src/coverage/coverage_collection.dart';
-import 'package:testgen/src/coverage/util.dart';
+import 'package:test_gen_ai/src/LLM/context_generator.dart';
+import 'package:test_gen_ai/src/LLM/model.dart';
+import 'package:test_gen_ai/src/LLM/test_generator.dart';
+import 'package:test_gen_ai/src/analyzer/declaration.dart';
+import 'package:test_gen_ai/src/analyzer/extractor.dart';
+import 'package:test_gen_ai/src/coverage/coverage_collection.dart';
+import 'package:test_gen_ai/src/coverage/util.dart';
 import 'package:yaml/yaml.dart';
 
 final _logger = Logger('testgen');
@@ -125,7 +125,7 @@ Future<Flags> parseArgs(List<String> arguments) async {
 
   void printUsage() {
     print('''
-testgen - LLM-based test generation tool
+test_gen_ai - LLM-based test generation tool
 
 Generates Dart test cases using Google Gemini to improve code coverage.
 

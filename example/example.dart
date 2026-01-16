@@ -1,4 +1,4 @@
-import 'package:testgen/testgen.dart';
+import 'package:test_gen_ai/test_gen_ai.dart';
 
 Future<void> main() async {
   // change the packagePath and scopeOutput to your package

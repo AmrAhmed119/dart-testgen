@@ -2,7 +2,7 @@
 
 import 'dart:io';
 import 'package:test/test.dart';
-import 'package:testgen/src/LLM/model.dart';
+import 'package:test_gen_ai/src/LLM/model.dart';
 
 void main() {
   group('GeminiModel', () {

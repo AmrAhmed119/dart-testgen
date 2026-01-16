@@ -1,7 +1,7 @@
 // LLM-Generated test file created by testgen
 
 import 'package:test/test.dart';
-import 'package:testgen/src/LLM/prompt_generator.dart';
+import 'package:test_gen_ai/src/LLM/prompt_generator.dart';
 
 void main() {
   group('PromptGenerator', () {

@@ -3,12 +3,12 @@ import 'dart:io';
 import 'dart:math';
 
 import 'package:benchmark_harness/benchmark_harness.dart';
-import 'package:testgen/src/LLM/context_generator.dart';
-import 'package:testgen/src/LLM/model.dart';
-import 'package:testgen/src/LLM/test_generator.dart';
-import 'package:testgen/src/analyzer/declaration.dart';
-import 'package:testgen/src/analyzer/extractor.dart';
-import 'package:testgen/src/coverage/coverage_collection.dart';
+import 'package:test_gen_ai/src/LLM/context_generator.dart';
+import 'package:test_gen_ai/src/LLM/model.dart';
+import 'package:test_gen_ai/src/LLM/test_generator.dart';
+import 'package:test_gen_ai/src/analyzer/declaration.dart';
+import 'package:test_gen_ai/src/analyzer/extractor.dart';
+import 'package:test_gen_ai/src/coverage/coverage_collection.dart';
 import 'package:path/path.dart' as path;
 
 final benchmarkResults = BenchmarkResultsCollector();

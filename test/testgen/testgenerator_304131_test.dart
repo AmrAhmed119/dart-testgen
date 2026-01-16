@@ -4,9 +4,9 @@ import 'dart:io';
 import 'package:test/test.dart';
 import 'package:mockito/mockito.dart';
 import 'package:path/path.dart' as path;
-import 'package:testgen/src/LLM/test_generator.dart';
-import 'package:testgen/src/LLM/validator.dart';
-import 'package:testgen/src/LLM/model.dart';
+import 'package:test_gen_ai/src/LLM/test_generator.dart';
+import 'package:test_gen_ai/src/LLM/validator.dart';
+import 'package:test_gen_ai/src/LLM/model.dart';
 
 class MockModel extends Mock implements GeminiModel {}
 

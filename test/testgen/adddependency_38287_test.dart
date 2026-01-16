@@ -1,7 +1,7 @@
 // LLM-Generated test file created by testgen
 
 import 'package:test/test.dart';
-import 'package:testgen/src/analyzer/declaration.dart';
+import 'package:test_gen_ai/src/analyzer/declaration.dart';
 
 void main() {
   group('Declaration', () {

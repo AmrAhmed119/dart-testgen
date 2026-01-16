@@ -2,7 +2,7 @@ import 'dart:io';
 
 import 'package:test/test.dart';
 import 'package:path/path.dart' as path;
-import 'package:testgen/src/LLM/test_file.dart';
+import 'package:test_gen_ai/src/LLM/test_file.dart';
 
 void main() {
   final testPackagePath = path.absolute('test', 'fixtures', 'test_package');

@@ -16,7 +16,7 @@
 ///   sourceCode: ['int calculateSum(int a, int b) {', '  return a + b;', '}'],
 ///   startLine: 15,
 ///   endLine: 17,
-///   path: 'package:testgen/src/analyzer/declaration.dart',
+///   path: 'package:test_gen_ai/src/analyzer/declaration.dart',
 /// );
 /// ```
 class Declaration {

@@ -5,9 +5,9 @@ import 'package:path/path.dart' as path;
 
 import 'package:analyzer/dart/analysis/analysis_context_collection.dart';
 import 'package:analyzer/dart/analysis/results.dart';
-import 'package:testgen/src/analyzer/declaration.dart';
-import 'package:testgen/src/analyzer/parser.dart';
-import 'package:testgen/src/coverage/coverage_collection.dart';
+import 'package:test_gen_ai/src/analyzer/declaration.dart';
+import 'package:test_gen_ai/src/analyzer/parser.dart';
+import 'package:test_gen_ai/src/coverage/coverage_collection.dart';
 
 final _logger = Logger('analyzer');
 

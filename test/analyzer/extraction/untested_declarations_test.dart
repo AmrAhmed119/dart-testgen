@@ -1,6 +1,6 @@
 import 'package:test/test.dart';
-import 'package:testgen/src/analyzer/declaration.dart';
-import 'package:testgen/src/analyzer/extractor.dart';
+import 'package:test_gen_ai/src/analyzer/declaration.dart';
+import 'package:test_gen_ai/src/analyzer/extractor.dart';
 
 import '../../utils.dart';
 

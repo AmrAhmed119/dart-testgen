@@ -4,7 +4,7 @@ import 'dart:async';
 import 'dart:io';
 import 'package:test/test.dart';
 import 'package:path/path.dart' as p;
-import 'package:testgen/src/coverage/coverage_collection.dart';
+import 'package:test_gen_ai/src/coverage/coverage_collection.dart';
 
 void main() {
   group('runTestsAndCollectCoverage', () {

@@ -1,7 +1,7 @@
 // LLM-Generated test file created by testgen
 
 import 'package:test/test.dart';
-import 'package:testgen/src/coverage/coverage_collection.dart';
+import 'package:test_gen_ai/src/coverage/coverage_collection.dart';
 
 void main() {
   group('formatCoverage', () {
@@ -10,7 +10,7 @@ void main() {
       final Map<String, dynamic> coverageResults = {
         'coverage': <Map<String, dynamic>>[
           {
-            'source': 'package:testgen/file1.dart',
+            'source': 'package:test_gen_ai/file1.dart',
             'hits': [
               1,
               1,
@@ -38,7 +38,7 @@ void main() {
       final Map<String, dynamic> coverageResults = {
         'coverage': <Map<String, dynamic>>[
           {
-            'source': 'package:testgen/file2.dart',
+            'source': 'package:test_gen_ai/file2.dart',
             'hits': [1, 10, 2, 5],
           },
         ],

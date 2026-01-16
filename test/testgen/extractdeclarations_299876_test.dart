@@ -3,7 +3,7 @@
 import 'dart:io';
 import 'package:test/test.dart';
 import 'package:path/path.dart' as path;
-import 'package:testgen/src/analyzer/extractor.dart';
+import 'package:test_gen_ai/src/analyzer/extractor.dart';
 
 void main() {
   group('extractDeclarations validation', () {

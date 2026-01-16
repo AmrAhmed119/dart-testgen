@@ -3,7 +3,7 @@ import 'dart:io';
 import 'package:package_config/package_config.dart';
 import 'package:test/test.dart';
 import 'package:path/path.dart' as path;
-import 'package:testgen/testgen.dart';
+import 'package:test_gen_ai/src/analyzer/extractor.dart';
 
 import '../../utils.dart';
 

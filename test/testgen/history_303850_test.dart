@@ -2,7 +2,7 @@
 
 import 'package:test/test.dart';
 import 'package:google_generative_ai/google_generative_ai.dart';
-import 'package:testgen/src/LLM/model.dart';
+import 'package:test_gen_ai/src/LLM/model.dart';
 
 void main() {
   group('GeminiChat', () {

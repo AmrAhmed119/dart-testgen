@@ -1,6 +1,6 @@
-TestGen is an LLM-based test generation tool that generates Dart test cases for uncovered code using Google Gemini to improve code coverage.
+TestGen AI is an LLM-based test generation tool that generates Dart test cases for uncovered code using Google Gemini to improve code coverage.
 
-[![pub package](https://img.shields.io/pub/v/testgen.svg)](https://pub.dev/packages/testgen)
+[![pub package](https://img.shields.io/pub/v/test_gen_ai.svg)](https://pub.dev/packages/test_gen_ai)
 [![CI](https://github.com/AmrAhmed119/dart-testgen/actions/workflows/testgen.yaml/badge.svg)](https://github.com/AmrAhmed119/dart-testgen/actions/workflows/testgen.yaml)
 [![Coverage](https://img.shields.io/badge/coverage-95.7%25-blue.svg)](.)
 
@@ -15,10 +15,10 @@ TestGen is an LLM-based test generation tool that generates Dart test cases for 
 
 ## Getting Started
 
-### Install testgen
+### Install test_gen_ai
 
 ```dart
-dart pub global activate testgen
+dart pub global activate test_gen_ai
 ```
 
 ### Gemini API key
@@ -39,17 +39,17 @@ Generate tests for your entire package.
 By default, this script assumes it's being run from the root directory of a package, and outputs test files to the `test/testgen/` folder with the naming convention: `{declaration_name}_{declaration_id}_{num_uncovered_lines}_test.dart`
 
 ```bash
-dart pub global run testgen:testgen
+dart pub global run test_gen_ai:testgen
 ```
 
 Advanced usage with custom configuration
 ```bash
-dart pub global run testgen:testgen --package '/home/user/code' --model gemini-3-flash-preview --api-key your_key --max-depth 5 --max-attempts 10 --effective-tests-only -v
+dart pub global run test_gen_ai:testgen --package '/home/user/code' --model gemini-3-flash-preview --api-key your_key --max-depth 5 --max-attempts 10 --effective-tests-only -v
 ```
 
 It’s recommended to run the package on a **specific set of files** rather than the entire codebase using `target-files` flag, This reduces execution time, and make results easier to analyze & review.
 ```bash
-dart pub global run testgen:testgen --package '/home/user/code' --target-files 'lib/src/foo.dart,lib/src/temp.dart'
+dart pub global run test_gen_ai:testgen --package '/home/user/code' --target-files 'lib/src/foo.dart,lib/src/temp.dart'
 ```
 
 
@@ -70,7 +70,7 @@ dart pub global run testgen:testgen --package '/home/user/code' --target-files '
 
 ## ⏰ Fair Warning
 
- TestGen takes time - sometimes a lot of it. Depending on your codebase size, this might be a perfect time to:
+ TestGen AI takes time - sometimes a lot of it. Depending on your codebase size, this might be a perfect time to:
 
 - Grab a coffee ☕
 - Take a power nap 😴

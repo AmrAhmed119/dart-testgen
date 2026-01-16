@@ -1,7 +1,7 @@
 import 'package:analyzer/dart/ast/ast.dart' as ast;
 import 'package:analyzer/dart/ast/visitor.dart';
 import 'package:analyzer/dart/element/element.dart';
-import 'package:testgen/src/analyzer/declaration.dart';
+import 'package:test_gen_ai/src/analyzer/declaration.dart';
 
 class DependencyVisitor extends RecursiveAstVisitor<void> {
   const DependencyVisitor(this.astNode, this.declaration, this.dependencies);

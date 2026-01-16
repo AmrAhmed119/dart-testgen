@@ -1,4 +1,4 @@
-name: testgen
+name: test_gen_ai
 description: >
   An LLM-based test generation tool that generates Dart test cases for uncovered code
   using Google Gemini to improve code coverage.

@@ -2,7 +2,7 @@ import 'dart:collection';
 
 import 'package:collection/collection.dart';
 import 'package:logging/logging.dart';
-import 'package:testgen/src/analyzer/declaration.dart';
+import 'package:test_gen_ai/src/analyzer/declaration.dart';
 
 const indent = '  ';
 const newLine = '\n';

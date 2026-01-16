@@ -1,5 +1,5 @@
 import 'package:test/test.dart';
-import 'package:testgen/src/analyzer/declaration.dart';
+import 'package:test_gen_ai/src/analyzer/declaration.dart';
 import 'package:path/path.dart' as path;
 
 import '../../utils.dart';

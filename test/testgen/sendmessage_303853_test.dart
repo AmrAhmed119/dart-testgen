@@ -5,7 +5,7 @@ import 'package:test/test.dart';
 import 'package:mockito/mockito.dart';
 import 'package:http/http.dart' as http;
 import 'package:google_generative_ai/google_generative_ai.dart';
-import 'package:testgen/src/LLM/model.dart';
+import 'package:test_gen_ai/src/LLM/model.dart';
 
 /// A fake HTTP client to intercept requests from the GenerativeModel.
 /// This avoids the need to mock final classes like ChatSession or GenerativeModel.

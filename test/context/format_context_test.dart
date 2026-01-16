@@ -1,5 +1,5 @@
 import 'package:test/test.dart';
-import 'package:testgen/src/LLM/context_generator.dart';
+import 'package:test_gen_ai/src/LLM/context_generator.dart';
 
 import '../utils.dart';
 

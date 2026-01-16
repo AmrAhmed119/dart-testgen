@@ -2,8 +2,8 @@
 
 import 'dart:io';
 import 'package:test/test.dart';
-import 'package:testgen/src/coverage/coverage_collection.dart';
-import 'package:testgen/src/analyzer/declaration.dart';
+import 'package:test_gen_ai/src/coverage/coverage_collection.dart';
+import 'package:test_gen_ai/src/analyzer/declaration.dart';
 import 'package:path/path.dart' as path;
 
 void main() {

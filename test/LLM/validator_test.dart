@@ -1,9 +1,9 @@
 import 'package:mockito/annotations.dart';
 import 'package:mockito/mockito.dart';
 import 'package:test/test.dart';
-import 'package:testgen/src/LLM/prompt_generator.dart';
-import 'package:testgen/src/LLM/test_file.dart';
-import 'package:testgen/src/LLM/validator.dart';
+import 'package:test_gen_ai/src/LLM/prompt_generator.dart';
+import 'package:test_gen_ai/src/LLM/test_file.dart';
+import 'package:test_gen_ai/src/LLM/validator.dart';
 
 @GenerateNiceMocks([MockSpec<TestFile>()])
 import 'validator_test.mocks.dart';

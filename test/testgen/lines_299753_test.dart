@@ -3,7 +3,7 @@
 import 'dart:async';
 import 'dart:convert';
 import 'package:test/test.dart';
-import 'package:testgen/src/coverage/util.dart';
+import 'package:test_gen_ai/src/coverage/util.dart';
 
 void main() {
   group('StandardOutExtension', () {

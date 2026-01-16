@@ -1,8 +1,8 @@
 import 'dart:io';
 
-import 'package:testgen/src/analyzer/declaration.dart';
+import 'package:test_gen_ai/src/analyzer/declaration.dart';
 import 'package:path/path.dart' as path;
-import 'package:testgen/src/analyzer/extractor.dart';
+import 'package:test_gen_ai/src/analyzer/extractor.dart';
 
 const testPackagePath = ['test', 'fixtures', 'test_package'];
 

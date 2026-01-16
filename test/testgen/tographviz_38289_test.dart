@@ -1,7 +1,7 @@
 // LLM-Generated test file created by testgen
 
 import 'package:test/test.dart';
-import 'package:testgen/src/analyzer/declaration.dart';
+import 'package:test_gen_ai/src/analyzer/declaration.dart';
 
 void main() {
   group('Declaration.toGraphviz', () {
@@ -14,7 +14,7 @@ void main() {
           sourceCode: ['void myFunction() {}'],
           startLine: 10,
           endLine: 15,
-          path: 'package:testgen/src/analyzer/declaration.dart',
+          path: 'package:test_gen_ai/src/analyzer/declaration.dart',
         );
 
         final result = declaration.toGraphviz();
@@ -37,7 +37,7 @@ void main() {
         sourceCode: ['void "quoted"() {}'],
         startLine: 1,
         endLine: 2,
-        path: 'package:testgen/src/analyzer/declaration.dart',
+        path: 'package:test_gen_ai/src/analyzer/declaration.dart',
       );
 
       final result = declaration.toGraphviz();
@@ -56,7 +56,7 @@ void main() {
           sourceCode: ['void main() {}'],
           startLine: 1,
           endLine: 10,
-          path: 'package:testgen/src/analyzer/declaration.dart',
+          path: 'package:test_gen_ai/src/analyzer/declaration.dart',
         );
         final dep1 = Declaration(
           2,
@@ -64,7 +64,7 @@ void main() {
           sourceCode: ['void dep1() {}'],
           startLine: 11,
           endLine: 15,
-          path: 'package:testgen/src/analyzer/declaration.dart',
+          path: 'package:test_gen_ai/src/analyzer/declaration.dart',
         );
         final dep2 = Declaration(
           3,
@@ -72,7 +72,7 @@ void main() {
           sourceCode: ['void dep2() {}'],
           startLine: 16,
           endLine: 20,
-          path: 'package:testgen/src/analyzer/declaration.dart',
+          path: 'package:test_gen_ai/src/analyzer/declaration.dart',
         );
 
         mainDecl.dependsOn.add(dep1);
@@ -93,7 +93,7 @@ void main() {
         sourceCode: ['void leaf() {}'],
         startLine: 1,
         endLine: 1,
-        path: 'package:testgen/src/analyzer/declaration.dart',
+        path: 'package:test_gen_ai/src/analyzer/declaration.dart',
       );
 
       final result = declaration.toGraphviz();

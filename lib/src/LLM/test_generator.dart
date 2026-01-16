@@ -3,10 +3,10 @@ import 'dart:math';
 
 import 'package:logging/logging.dart';
 import 'package:path/path.dart' as path;
-import 'package:testgen/src/LLM/model.dart';
-import 'package:testgen/src/LLM/prompt_generator.dart';
-import 'package:testgen/src/LLM/test_file.dart';
-import 'package:testgen/src/LLM/validator.dart';
+import 'package:test_gen_ai/src/LLM/model.dart';
+import 'package:test_gen_ai/src/LLM/prompt_generator.dart';
+import 'package:test_gen_ai/src/LLM/test_file.dart';
+import 'package:test_gen_ai/src/LLM/validator.dart';
 
 enum TestStatus { created, failed, skipped }
 

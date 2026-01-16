@@ -1,6 +1,6 @@
 import 'package:logging/logging.dart';
-import 'package:testgen/src/LLM/prompt_generator.dart';
-import 'package:testgen/src/LLM/test_file.dart';
+import 'package:test_gen_ai/src/LLM/prompt_generator.dart';
+import 'package:test_gen_ai/src/LLM/test_file.dart';
 
 /// List of standard validators that are run on generated test files.
 /// These validators must be passed before a test file is considered valid.
