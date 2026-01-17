@@ -4,3 +4,6 @@ pubspec.lock
 # generated files
 **/*.mocks.dart
 /coverage/
+
+# environment variables (keep .env private, .env.dev is public template)
+.env

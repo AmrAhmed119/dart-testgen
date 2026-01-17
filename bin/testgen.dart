@@ -2,6 +2,7 @@ import 'dart:collection';
 import 'dart:io';
 
 import 'package:args/args.dart';
+import 'package:dotenv/dotenv.dart';
 import 'package:logging/logging.dart';
 import 'package:path/path.dart' as path;
 import 'package:test_gen_ai/src/LLM/context_generator.dart';
@@ -224,6 +225,9 @@ List<String> getPackageDependencies(String package) {
 }
 
 Future<void> main(List<String> arguments) async {
+  // Load environment variables from .env file
+  final env = DotEnv()..load();
+
   Logger.root.level = Level.INFO;
   Logger.root.onRecord.listen((record) {
     print(
