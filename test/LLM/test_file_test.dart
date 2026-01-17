@@ -142,7 +142,9 @@ void main() {
         expect(result, contains('Actual: <true>'));
         expect(
           result,
-          contains('test/testgen/failing_test.dart 7:9  main.<fn>'),
+          contains(
+            RegExp(r'test[/\\]testgen[/\\]failing_test\.dart 7:9\s+main\.<fn>'),
+          ),
         );
         expect(testFile.testErrors, equals(1));
 
@@ -170,8 +172,10 @@ void main() {
       expect(
         testResult,
         contains(
-          "test/testgen/passing_test.dart:4:15: Error: A value of type"
-          " 'String' can't be assigned to a variable of type 'int'.",
+          RegExp(
+            r"test[/\\]testgen[/\\]passing_test\.dart:4:15: Error: A value of type"
+            r" 'String' can't be assigned to a variable of type 'int'\.",
+          ),
         ),
       );
       expect(testFile.testErrors, equals(1));

@@ -87,6 +87,7 @@ Declaration _parseDeclaration(
           groupOffset ?? declaration.offset,
           groupEnd ?? declaration.end,
         )
+        .replaceAll('\r\n', '\n') // Normalize Windows line endings
         .split('\n'),
     startLine: lineInfo
         .getLocation(groupOffset ?? declaration.offset)
