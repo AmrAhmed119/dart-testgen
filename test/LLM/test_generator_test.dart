@@ -333,6 +333,24 @@ void main() {
       );
     });
 
+    test('Exit immediately when API key is invalid', () async {
+      when(
+        mockChat.sendMessage(any),
+      ).thenAnswer(
+        (_) async =>
+            throw Exception('api key not valid. please pass a valid api key.'),
+      );
+
+      expect(
+        () async => await generator.generate(
+          toBeTestedCode: '',
+          contextCode: '',
+          fileName: 'tmp_file.dart',
+        ),
+        throwsA(isA<StateError>()),
+      );
+    });
+
     test('Handle non-rate-limit errors (network, parsing, ...)', () async {
       when(
         mockAnalysisValidator.validate(any, any),
