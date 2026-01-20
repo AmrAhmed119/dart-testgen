@@ -191,11 +191,7 @@ class TestGenerator {
         }
 
         if (errorMessage.contains('api key not valid')) {
-          status = TestStatus.failed;
-          await testFile.deleteTest();
-          throw StateError(
-            'Invalid API key provided. Please pass a valid API key.',
-          );
+          rethrow;
         }
 
         _logger.warning('Error encountered: $errorMessage');

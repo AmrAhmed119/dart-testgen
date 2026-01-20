@@ -347,7 +347,7 @@ void main() {
           contextCode: '',
           fileName: 'tmp_file.dart',
         ),
-        throwsA(isA<StateError>()),
+        throwsA(isA<Exception>()),
       );
     });
 
