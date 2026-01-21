@@ -334,9 +334,7 @@ void main() {
     });
 
     test('Exit immediately when API key is invalid', () async {
-      when(
-        mockChat.sendMessage(any),
-      ).thenAnswer(
+      when(mockChat.sendMessage(any)).thenAnswer(
         (_) async =>
             throw Exception('api key not valid. please pass a valid api key.'),
       );
