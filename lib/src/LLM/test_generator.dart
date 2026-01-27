@@ -1,9 +1,12 @@
 import 'dart:io';
 import 'dart:math';
 
+import 'package:analyzer/dart/analysis/utilities.dart';
+import 'package:analyzer/dart/ast/ast.dart';
 import 'package:logging/logging.dart';
 import 'package:path/path.dart' as path;
 import 'package:test_gen_ai/src/LLM/model.dart';
+import 'package:yaml/yaml.dart';
 import 'package:test_gen_ai/src/LLM/prompt_generator.dart';
 import 'package:test_gen_ai/src/LLM/test_file.dart';
 import 'package:test_gen_ai/src/LLM/validator.dart';
@@ -151,6 +154,17 @@ class TestGenerator {
         backoff = initialBackoff;
 
         if (response.needTesting) {
+          final invalidImports = _validateImports(response.code, packagePath);
+          if (invalidImports.isNotEmpty) {
+            final error =
+                'The generated code imports packages that are not declared in '
+                'pubspec.yaml: ${invalidImports.join(", ")}. '
+                'You must only use declared dependencies.';
+            _logger.warning(error);
+            prompt = promptGenerator.fixError(error);
+            continue;
+          }
+
           await testFile.writeTest(response.code);
 
           final validation = await _runValidators(testFile, promptGenerator);
@@ -214,5 +228,56 @@ class TestGenerator {
     _logger.info(generationResponse);
 
     return generationResponse;
+  }
+
+  /// Validates that the generated [code] only imports packages declared in
+  /// the project's `pubspec.yaml`, or standard Dart/Test packages.
+  ///
+  /// Returns a list of undeclared package names.
+  List<String> _validateImports(String code, String packagePath) {
+    // 1. Parse pubspec.yaml to get allowed dependencies
+    final pubspecFile = File(path.join(packagePath, 'pubspec.yaml'));
+    if (!pubspecFile.existsSync()) {
+      _logger.warning('pubspec.yaml not found at $packagePath');
+      return []; // Cannot validate, safe fallback or strict failure?
+      // Assuming generally safe to proceed if we can't check, OR strict failure.
+      // Given the requirement "Generated tests must be valid", let's be strict
+      // but if pubspec is missing, something is really wrong.
+      // For now, let's log and return empty, effectively skipping validation.
+    }
+
+    final pubspecContent = pubspecFile.readAsStringSync();
+    final pubspec = loadYaml(pubspecContent) as YamlMap;
+
+    final packageName = pubspec['name'] as String?;
+    final dependencies =
+        (pubspec['dependencies'] as YamlMap?)?.keys.toSet() ?? {};
+    final devDependencies =
+        (pubspec['dev_dependencies'] as YamlMap?)?.keys.toSet() ?? {};
+
+    final allowedPackages = {
+      ...dependencies,
+      ...devDependencies,
+      if (packageName != null) packageName,
+      'test', // package:test/test.dart
+    };
+
+    // 2. Parse generated code to find imports
+    final parseResult = parseString(content: code, throwIfDiagnostics: false);
+    final undeclaredPackages = <String>[];
+
+    for (final directive in parseResult.unit.directives) {
+      if (directive is ImportDirective) {
+        final uri = directive.uri.stringValue;
+        if (uri != null && uri.startsWith('package:')) {
+          final packageName = uri.split('/')[0].substring('package:'.length);
+          if (!allowedPackages.contains(packageName)) {
+            undeclaredPackages.add(packageName);
+          }
+        }
+      }
+    }
+
+    return undeclaredPackages;
   }
 }
