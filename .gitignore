@@ -4,3 +4,4 @@ pubspec.lock
 # generated files
 **/*.mocks.dart
 /coverage/
+testgen_prompts.log

@@ -16,6 +16,9 @@ final _logger = Logger('analyzer');
 /// If [targetFiles] is provided, only declarations in the provided file paths
 /// are returned.
 ///
+/// If [targetDeclarations] is provided, only declarations with the provided
+/// names are returned.
+///
 /// Each file is resolved and parsed into [Declaration]s, and dependencies
 /// between declarations are linked.
 ///
@@ -23,6 +26,7 @@ final _logger = Logger('analyzer');
 Future<List<Declaration>> extractDeclarations(
   String package, {
   List<String> targetFiles = const [],
+  List<String> targetDeclarations = const [],
 }) async {
   _logger.info('Extracting source code declarations from $package');
   final collection = AnalysisContextCollection(includedPaths: [package]);
@@ -79,16 +83,43 @@ Future<List<Declaration>> extractDeclarations(
   }
 
   final allDeclarations = visitedDeclarations.values.toList();
+  final targetPackageUris = targetFiles
+      .map((file) => config.toPackageUri(File(file).uri).toString())
+      .toList();
+
+  return filterDeclarations(
+    allDeclarations,
+    targetFiles: targetPackageUris,
+    targetDeclarations: targetDeclarations,
+  );
+}
+
+/// Filters [allDeclarations] by target files and declaration names.
+///
+/// [targetFiles] are package URIs of Dart files
+/// [targetDeclarations] are the names of declarations to include
+List<Declaration> filterDeclarations(
+  List<Declaration> allDeclarations, {
+  List<String> targetFiles = const [],
+  List<String> targetDeclarations = const [],
+}) {
+  var filtered = allDeclarations;
 
   if (targetFiles.isNotEmpty) {
-    _logger.info('Filtering declarations to only include target files');
-    final targetSet = targetFiles
-        .map((file) => config.toPackageUri(File(file).uri).toString())
-        .toSet();
-    return allDeclarations.where((d) => targetSet.contains(d.path)).toList();
+    _logger.info('Filtering declarations by target files');
+
+    final targetSet = targetFiles.toSet();
+    filtered = filtered.where((d) => targetSet.contains(d.path)).toList();
   }
 
-  return allDeclarations;
+  if (targetDeclarations.isNotEmpty) {
+    _logger.info('Filtering declarations by target names');
+
+    final nameSet = targetDeclarations.toSet();
+    filtered = filtered.where((d) => nameSet.contains(d.name)).toList();
+  }
+
+  return filtered;
 }
 
 /// Extracts declarations that have untested code lines based on coverage data.

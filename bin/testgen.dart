@@ -27,6 +27,12 @@ ArgParser _createArgParser() => ArgParser()
     help: 'Limit test generation to specific dart files inside the package.',
     valueHelp: 'lib/foo.dart,lib/src/temp.dart',
   )
+  ..addMultiOption(
+    'target-declarations',
+    defaultsTo: [],
+    help: 'Limit test generation to specific declaration names.',
+    valueHelp: 'functionName, variableName',
+  )
   ..addOption(
     'port',
     defaultsTo: '0',
@@ -93,6 +99,7 @@ class Flags {
   const Flags({
     required this.package,
     required this.targetFiles,
+    required this.targetDeclarations,
     required this.vmServicePort,
     required this.branchCoverage,
     required this.functionCoverage,
@@ -107,6 +114,7 @@ class Flags {
 
   final String package;
   final List<String> targetFiles;
+  final List<String> targetDeclarations;
   final String vmServicePort;
   final bool branchCoverage;
   final bool functionCoverage;
@@ -197,6 +205,7 @@ ${parser.usage}
   return Flags(
     package: packageDir,
     targetFiles: targetFiles,
+    targetDeclarations: results['target-declarations'] as List<String>,
     vmServicePort: results['port'],
     branchCoverage: results['branch-coverage'],
     functionCoverage: results['function-coverage'],
@@ -260,6 +269,7 @@ Future<void> main(List<String> arguments) async {
   final declarations = await extractDeclarations(
     flags.package,
     targetFiles: flags.targetFiles,
+    targetDeclarations: flags.targetDeclarations,
   );
 
   final Map<String, List<Declaration>> declarationsByFile = {};
