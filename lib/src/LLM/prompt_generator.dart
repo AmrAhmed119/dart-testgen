@@ -10,7 +10,11 @@
 class PromptGenerator {
   const PromptGenerator();
 
-  String testCode(String toBeTestedCode, String contextCode) {
+  String testCode(
+    String toBeTestedCode,
+    String contextCode, {
+    List<String>? helperTestsCode,
+  }) {
     final buffer = StringBuffer();
 
     buffer.writeln('''
@@ -28,6 +32,20 @@ With the following context:
 $contextCode
 ```
 ''');
+    }
+
+    if (helperTestsCode?.isNotEmpty == true) {
+      buffer.writeln('''
+Also use the following existing tests as examples (few-shot):
+''');
+
+      for (final helper in helperTestsCode!) {
+        buffer.writeln('''
+```dart
+$helper
+```
+''');
+      }
     }
 
     buffer.writeln('''

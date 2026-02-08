@@ -55,6 +55,7 @@ class TestGenerator {
     required this.packagePath,
     this.promptGenerator = const PromptGenerator(),
     List<Validator>? validators,
+    this.helperTestsCode = const [],
     this.maxRetries = 5,
     this.initialBackoff = const Duration(seconds: 32),
     this.verbose = false,
@@ -81,6 +82,7 @@ class TestGenerator {
   final String packagePath;
   final PromptGenerator promptGenerator;
   final List<Validator> validators;
+  final List<String> helperTestsCode;
   final int maxRetries;
   final Duration initialBackoff;
   final _logger = Logger('TestGenerator');
@@ -134,7 +136,11 @@ class TestGenerator {
     TestStatus status = TestStatus.failed;
     Duration backoff = initialBackoff;
     final testFile = TestFile(packagePath, fileName);
-    String prompt = promptGenerator.testCode(toBeTestedCode, contextCode);
+    String prompt = promptGenerator.testCode(
+      toBeTestedCode,
+      contextCode,
+      helperTestsCode: helperTestsCode,
+    );
 
     int attempt = 1;
     for (; attempt <= maxRetries && status == TestStatus.failed; attempt++) {

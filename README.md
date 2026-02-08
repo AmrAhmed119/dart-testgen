@@ -59,6 +59,7 @@ dart pub global run test_gen_ai:testgen --package '/home/user/code' --target-fil
 |--------|-------|---------|-------------|
 | `--package` | | `.` (current directory) | Root directory of the package to test |
 | `--target-files` | | `[]` | Limit test generation to specific dart files inside the package (paths relative to package root, e.g. `lib/foo.dart`) |
+| `--helper-tests` | | `[]` | Paths to existing test files used as few-shot examples for the LLM (paths relative to package root, e.g. `test/foo_test.dart`) |
 | `--target-declarations` | | `[]` | Limit test generation to specific declaration names (comma-separated, e.g. `functionName,variableName`) |
 | `--model` | | `gemini-3-flash-preview` | Gemini model to use (`gemini-3-flash-preview`, `gemini-2.5-flash`, `gemini-2.5-flash-lite`) |
 | `--api-key` | | `$GEMINI_API_KEY` | Gemini API key for authentication |
