@@ -116,7 +116,11 @@ List<Declaration> filterDeclarations(
     _logger.info('Filtering declarations by target names');
 
     final nameSet = targetDeclarations.toSet();
-    filtered = filtered.where((d) => nameSet.contains(d.name)).toList();
+    filtered = filtered
+        .where(
+          (d) => nameSet.contains(d.name) || nameSet.contains(d.parent?.name),
+        )
+        .toList();
   }
 
   return filtered;

@@ -160,5 +160,71 @@ void main() {
       expect(result, containsAllInOrder([declaration1, declaration3]));
       expect(result.length, 2);
     });
+
+    test(
+      'Return all declarations within a parent when filtering by parent name.',
+      () {
+        final parent = Declaration(
+          0,
+          name: 'ParentClass',
+          sourceCode: ['class ParentClass {'],
+          startLine: 1,
+          endLine: 1,
+          path: 'package:my_pkg/src/file_parent.dart',
+        );
+
+        final childMethod = Declaration(
+          1,
+          name: 'childMethod',
+          sourceCode: ['  void childMethod() {', 'print("Hello");', '  }'],
+          startLine: 2,
+          endLine: 4,
+          path: 'package:my_pkg/src/file_parent.dart',
+          parent: parent,
+        );
+        final childVar = Declaration(
+          2,
+          name: 'childVar',
+          sourceCode: ['  int childVar = func();'],
+          startLine: 5,
+          endLine: 5,
+          path: 'package:my_pkg/src/file_parent.dart',
+          parent: parent,
+        );
+        final unrelated = Declaration(
+          3,
+          name: 'Unrelated',
+          sourceCode: ['void unrelated() {}'],
+          startLine: 6,
+          endLine: 6,
+          path: 'package:my_pkg/src/file_parent.dart',
+          parent: null,
+        );
+        final allDeclarations = [parent, childMethod, childVar, unrelated];
+
+        // When filtering by the parent name we expect both the parent and its
+        // child declarations to be returned.
+        final resultByParent = filterDeclarations(
+          allDeclarations,
+          targetDeclarations: ['ParentClass'],
+        );
+
+        expect(
+          resultByParent,
+          containsAllInOrder([parent, childMethod, childVar]),
+        );
+        expect(resultByParent.length, 3);
+
+        // When filtering by the child's own name only the child should be
+        // returned.
+        final resultByChild = filterDeclarations(
+          allDeclarations,
+          targetDeclarations: ['childMethod'],
+        );
+
+        expect(resultByChild, containsAllInOrder([childMethod]));
+        expect(resultByChild.length, 1);
+      },
+    );
   });
 }

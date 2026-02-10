@@ -39,7 +39,7 @@ ArgParser _createArgParser() => ArgParser()
     'target-declarations',
     defaultsTo: [],
     help: 'Limit test generation to specific declaration names.',
-    valueHelp: 'functionName, variableName',
+    valueHelp: 'functionName, variableName, className',
   )
   ..addOption(
     'port',
@@ -203,14 +203,18 @@ ${parser.usage}
   final targetFiles = resolveAndValidatePaths(
     results['target-files'] as List<String>,
     libDir,
-    'target-files must contain dart files exist inside lib directory',
+    'target-files must be paths to Dart files inside the lib directory. '
+    'Paths must be relative to the project root. '
+    'Example: lib/foo.dart',
   );
 
   final testDir = path.join(packageDir, 'test');
   final helperTestPaths = resolveAndValidatePaths(
     results['helper-tests'] as List<String>,
     testDir,
-    'helper-tests must contain dart files exist inside test directory',
+    'helper-tests must be paths to Dart files inside the test directory. '
+    'Paths must be relative to the project root. '
+    'Example: test/foo_test.dart',
   );
 
   final scopes = results['scope-output'].isEmpty
