@@ -60,6 +60,12 @@ class GeminiModel {
               'that do not make sense to test.',
           nullable: false,
         ),
+        'requiredDependencies': Schema.array(
+          description:
+              'List of package dependencies required by the generated test code (e.g., ["mockito", "build_runner"]).',
+          items: Schema.string(),
+          nullable: true,
+        ),
       },
       requiredProperties: ['code', 'needTesting'],
     );
@@ -118,10 +124,15 @@ class GeminiChat {
 /// Contains the generated Dart test [code] and a boolean [needTesting] that
 /// indicates whether the model determined the input actually requires tests.
 class ChatResponse {
-  ChatResponse({required this.code, required this.needTesting});
+  ChatResponse({
+    required this.code,
+    required this.needTesting,
+    this.requiredDependencies = const [],
+  });
 
   final String code;
   final bool needTesting;
+  final List<String> requiredDependencies;
 
   /// Parses a JSON text response from the model into a [ChatResponse].
   ///
@@ -137,9 +148,12 @@ class ChatResponse {
     try {
       final json = jsonDecode(response.text!) as Map<String, dynamic>;
 
+      final deps = json['requiredDependencies'] as List<dynamic>?;
+
       return ChatResponse(
         code: json['code'] as String,
         needTesting: json['needTesting'] as bool,
+        requiredDependencies: deps?.map((e) => e.toString()).toList() ?? [],
       );
     } catch (e) {
       throw FormatException(
